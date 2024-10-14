@@ -2,3 +2,8 @@ __pycache__
 lightning_logs
 outputs
 .ipynb_checkpoints
+/notebook
+*.inter
+*.json
+.venv
+uv.lock
