@@ -1,0 +1,2 @@
+Add your source data (MovieLens 1M) here in original unzipped format
+(Files must include users.dat, ratings.dat, movies.dat)
