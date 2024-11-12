@@ -1,27 +1,36 @@
-""""
-Utils.
-"""
+# src/utils.py
 
-import os
-from glob import glob
+import random
+import numpy as np
+import torch
+import json
 
-import pandas as pd
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+def set_seed(seed):
+    """Устанавливает зерно для воспроизводимости."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
-def extract_validation_history(path):
+def load_user_profile_embeddings(file_path, user_id_mapping):
+    """Загружает эмбеддинги профилей пользователей и сопоставляет их с индексами пользователей."""
+    with open(file_path, 'r') as f:
+        user_profiles_data = json.load(f)
+    # Создаём словарь: оригинальный ID пользователя -> эмбеддинг
+    user_profiles_dict = {str(user['id']): user['embedding'] for user in user_profiles_data}
 
-    events_path = glob(os.path.join(path, 'events.*'))[0]
+    embedding_dim = len(next(iter(user_profiles_dict.values())))
+    num_users = len(user_id_mapping)
+    user_profiles_list = []
 
-    event_acc = EventAccumulator(events_path)
-    event_acc.Reload()
+    for original_id, idx in user_id_mapping.items():
+        embedding = user_profiles_dict.get(str(original_id))
+        if embedding is not None:
+            user_profiles_list.append(embedding)
+        else:
+            # Если эмбеддинг не найден, инициализируем нулями
+            user_profiles_list.append([0.0] * embedding_dim)
 
-    scalars = event_acc.Tags()['scalars']
-    history = pd.DataFrame(columns=['step'])
-    for scalar in scalars:
-        events = event_acc.Scalars(tag=scalar)
-        df_scalar = pd.DataFrame(
-            [(event.step, event.value) for event in events], columns=['step', scalar])
-        history = pd.merge(history, df_scalar, on='step', how='outer')
-
-    return history
+    user_profiles_tensor = torch.tensor(user_profiles_list, dtype=torch.float)
+    return user_profiles_tensor

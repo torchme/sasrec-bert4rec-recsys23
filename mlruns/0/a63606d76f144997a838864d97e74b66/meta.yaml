@@ -1,0 +1,16 @@
+artifact_uri: file:///C:/Users/redpo/Desktop/ITMO/ITMO%20RESEARCH/sasrec-bert4rec-recsys23/mlruns/0/a63606d76f144997a838864d97e74b66/artifacts
+deleted_time: 1731358861227
+end_time: 1731352773948
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: deleted
+run_id: a63606d76f144997a838864d97e74b66
+run_name: SASRec Experiment
+run_uuid: a63606d76f144997a838864d97e74b66
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1731352749797
+status: 3
+tags: []
+user_id: redpo

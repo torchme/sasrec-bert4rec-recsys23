@@ -1,4 +1,6 @@
+/.venv
+*.json
+*.pkl
+*.inter
+*.pt
 __pycache__
-lightning_logs
-outputs
-.ipynb_checkpoints

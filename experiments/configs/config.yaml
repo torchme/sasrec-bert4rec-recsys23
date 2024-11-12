@@ -1,0 +1,30 @@
+experiment_name: "SASRec"
+
+model:
+  model_name: "SASRec"  # Возможные значения: "SASRec", "BERT4Rec", "SASRecMod", "BERT4RecMod"
+  # Остальные параметры модели
+  item_num: null        # Будет установлено в training.py
+  user_num: null
+  maxlen: 50
+  hidden_units: 64
+  num_blocks: 2
+  num_heads: 2
+  dropout_rate: 0.1
+  user_emb_dim: 384     # Для моделей с интеграцией эмбеддингов пользователей
+
+training:
+  batch_size: 128
+  learning_rate: 0.001
+  epochs: 20
+  seed: 42
+  eval_every: 1
+  model_dir: "models/"
+
+data:
+  train_sequences: "data/processed/train_sequences.pkl"
+  valid_sequences: "data/processed/valid_sequences.pkl"
+  test_sequences: "data/processed/test_sequences.pkl"
+  mappings: "data/processed/mappings.pkl"
+  counts: "data/processed/counts.pkl"
+  user_embeddings_path: "data/embeddings/user_embeddings.json"  # Для моделей с эмбеддингами пользователей
+
