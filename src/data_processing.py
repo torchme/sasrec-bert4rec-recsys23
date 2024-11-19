@@ -184,7 +184,10 @@ class DatasetLoaderML:
     def session_split(self, boundary=0.8, validation_size=0.2,
                       path_to_save=None, save_intermediate=True):
         data = self.ratings
-        data = data[pd.to_datetime(data[self.timestamp_column], errors='coerce').notna()]
+        if self.timestamp_format is not None:
+            data = data[pd.to_datetime(data[self.timestamp_column], errors='coerce').notna()]
+        else:
+            data[self.timestamp_column] = data[self.timestamp_column].astype(int)
         train, test = self.session_splitter(data, boundary)
 
         if validation_size is not None:
@@ -314,6 +317,9 @@ class DatasetLoaderML:
 
     # Метод для сохранения обработанных данных
     def save_processed_data(self, data, file_path):
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         with open(file_path, 'wb') as f:
             pickle.dump(data, f)
 
@@ -336,7 +342,7 @@ def load_settings_from_file(settings_filepath):
         interaction = f.readline().strip()
         interaction_scale = tuple(map(float, f.readline().strip().split(', ')))
         timestamp_format = f.readline().strip()
-        timestamp_format = None if timestamp_format.lower() == None else timestamp_format
+        timestamp_format = None if timestamp_format.lower() == "none" else timestamp_format
         stratify_users = f.readline().strip().lower() == "true"
         stratify_user_column_names = f.readline().strip()
         return DatasetSettings(data_dir=data_dir,

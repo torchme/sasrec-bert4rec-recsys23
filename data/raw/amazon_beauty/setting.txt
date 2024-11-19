@@ -1,0 +1,18 @@
+../data/raw/amazon_beauty
+ProductId
+UserId
+Timestamp, UserId, Rating, ProductId
+items.csv
+users.csv
+interactions.csv
+,
+utf-8
+True
+ProductId
+UserId
+Timestamp
+Rating
+1, 5
+None
+False
+_, _
