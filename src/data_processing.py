@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pickle
 from datetime import datetime
+from sklearn.model_selection import StratifiedShuffleSplit
 
 class DatasetSettings:
     def __init__(self, data_dir, items_features, users_features, interactions_features, items_filename, users_filename,
@@ -206,22 +207,44 @@ class DatasetLoaderML:
         :return: train, validation, test DataFrames
         """
         if validation_size <= 0 or validation_size >= 1:
-            raise ValueError("Validation size should be between 0 and 1 not including")
-        validation_users_count = len(train[self.user_id_column].unique()) * validation_size
-        validation_users = np.random.choice(train[self.user_id_column].unique(), size=int(validation_users_count), replace=False)
+            raise ValueError("Validation size should be between 0 and 1 (exclusive).")
+        validation_users_count = int(len(train[self.user_id_column].unique()) * validation_size)
+
+        if self.stratify_users and self.stratify_user_column_names:
+            stratify_columns = [col for col in self.stratify_user_column_names if col in train.columns]
+
+            if stratify_columns:
+                user_groups = train.groupby(self.user_id_column)[stratify_columns].first().reset_index()
+
+                user_groups['stratify_key'] = user_groups[stratify_columns].astype(str).agg('_'.join, axis=1)
+
+                splitter = StratifiedShuffleSplit(
+                    n_splits=1, test_size=validation_size, random_state=42
+                )
+
+                train_idx, validation_idx = next(splitter.split(
+                    user_groups, user_groups['stratify_key']
+                ))
+
+                validation_users = user_groups.iloc[validation_idx][self.user_id_column].values
+            else:
+                validation_users = np.random.choice(
+                    train[self.user_id_column].unique(),
+                    size=validation_users_count,
+                    replace=False
+                )
+        else:
+            validation_users = np.random.choice(
+                train[self.user_id_column].unique(),
+                size=validation_users_count,
+                replace=False
+            )
         validation = train[train[self.user_id_column].isin(validation_users)]
         train = train[~train[self.user_id_column].isin(validation_users)]
         return train, validation, test
 
     def session_splitter(self, data, boundary):
         data.sort_values([self.user_id_column, self.timestamp_column], inplace=True)
-        # if self.timestamp_format:
-        #     quant = (pd.to_datetime(data[self.timestamp_column],
-        #                             errors='coerce').astype("int64") // 10**9).quantile(boundary)
-        #     train = data[(pd.to_datetime(data[self.timestamp_column],
-        #                                  errors='coerce').astype("int64") // 10**9) <= quant]
-        #     test = data[(pd.to_datetime(data[self.timestamp_column], errors='coerce').astype("int64") // 10**9) > quant]
-        # else:
         data.sort_values([self.user_id_column, self.timestamp_column], inplace=True)
         quant = data[self.timestamp_column].quantile(boundary)
         users_time = data.groupby(self.user_id_column)[self.timestamp_column].agg(list).apply(
@@ -311,7 +334,7 @@ def load_settings_from_file(settings_filepath):
         user_id = f.readline().strip()
         timestamp = f.readline().strip()
         interaction = f.readline().strip()
-        interaction_scale = tuple(map(int, f.readline().strip().split(', ')))
+        interaction_scale = tuple(map(float, f.readline().strip().split(', ')))
         timestamp_format = f.readline().strip()
         timestamp_format = None if timestamp_format.lower() == None else timestamp_format
         stratify_users = f.readline().strip().lower() == "true"

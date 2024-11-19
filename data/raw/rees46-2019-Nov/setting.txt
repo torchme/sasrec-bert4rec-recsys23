@@ -14,5 +14,5 @@ last_watch_dt
 watched_pct
 0, 100
 yyyy-mm-dd
-False
+True
 age, sex
