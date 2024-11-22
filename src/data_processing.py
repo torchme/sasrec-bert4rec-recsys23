@@ -103,7 +103,7 @@ class DatasetLoaderML:
         self.encoding = setting.encoding
         self.drop_title_row = setting.drop_title_row
         self.users = None
-        self.movies = None
+        self.items = None
         self.ratings = None
         self.user_id_column = setting.user_id
         self.item_id_column = setting.item_id
@@ -127,13 +127,13 @@ class DatasetLoaderML:
     def load_documents(self, print_on_success=True):
         movie_columns = self.items_features
         movie_path = os.path.join(self.data_dir, self.items_filename)
-        self.movies = pd.read_csv(movie_path, sep=self.separator, engine='python', names=movie_columns, encoding=self.encoding)
+        self.items = pd.read_csv(movie_path, sep=self.separator, engine='python', names=movie_columns, encoding=self.encoding)
         if self.drop_title_row:
-            self.movies = self.movies.iloc[1:]
+            self.items = self.items.iloc[1:]
         if print_on_success:
-            print(f'Movies data loaded: {self.movies.shape[0]} records')
+            print(f'Movies data loaded: {self.items.shape[0]} records')
 
-    def load_ratings(self, print_on_success=True):
+    def load_ratings(self, filter_user_actions_count=3, print_on_success=True):
         ratings_columns = self.interactions_features
         ratings_path = os.path.join(self.data_dir, self.interactions_filename)
         self.ratings = pd.read_csv(ratings_path, sep=self.separator, engine='python', names=ratings_columns)
@@ -142,15 +142,29 @@ class DatasetLoaderML:
         if self.timestamp_format is not None:
             self.ratings[self.timestamp_column] = pd.to_datetime(self.ratings[self.timestamp_column],
                                                                  errors='coerce').astype("int64") // 10**9
-        self.ratings = self.ratings[self.ratings[self.user_id_column].isin(self.users[self.user_id_column])]
-        self.ratings = self.ratings[self.ratings[self.item_id_column].isin(self.movies[self.item_id_column])]
         if print_on_success:
-            print(f'Ratings data loaded: {self.ratings.shape[0]} records')
+            print(f'Interactions data loaded: {self.ratings.shape[0]} records before filtering rules')
+        self.filter_ratings_by_interaction_threshold(filter_user_actions_count)
 
-    def load_altogether(self, print_on_success=True):
+    def load_altogether(self, filter_user_actions_count=3, print_on_success=True):
         self.load_users(print_on_success)
         self.load_documents(print_on_success)
-        self.load_ratings(print_on_success)
+        self.load_ratings(filter_user_actions_count, print_on_success)
+
+    def filter_ratings_by_interaction_threshold(self, threshold, print_on_success=True):
+        user_interactions = self.ratings[self.user_id_column].value_counts()
+        filtered_users = user_interactions[user_interactions > threshold].index
+        self.users = self.users[self.users[self.user_id_column].isin(filtered_users)]
+        item_interactions = self.ratings[self.item_id_column].value_counts()
+        filtered_items = item_interactions[item_interactions > 3].index
+        self.items = self.items[self.items[self.item_id_column].isin(filtered_items)]
+        self.ratings = self.ratings[self.ratings[self.user_id_column].isin(self.users[self.user_id_column])]
+        self.ratings = self.ratings[self.ratings[self.item_id_column].isin(self.items[self.item_id_column])]
+
+        if print_on_success:
+            print(f'Users left after applying threshold of {threshold}: {len(self.users)}')
+            print(f'Items left after applying threshold of {3}: {len(self.items)}')
+            print(f'Interactions left after applying threshold of {threshold} actions per user: {len(self.ratings)}')
 
     # Сохранение данных в формат .inter
     def save_inter_files(self, train, validation, test, path_to_save, save_validation=True):
@@ -312,8 +326,10 @@ class DatasetLoaderML:
 
 
     def preprocess_data_from_raw_dataset(self, save_intermediate=True, path_to_save=None,
-                                         boundary=0.8, print_on_success=True):
-        self.load_altogether(print_on_success)
+                                         boundary=0.8, filter_user_actions_count=3, print_on_success=True):
+        # TODO: пробросить параметр для фильтрации пользователей до первой из функций по порядку запуска
+        # TODO: создать параметр трешхолда для фильтрации items по кол-ву вз-ий до первой из функций по порядку запуска
+        self.load_altogether(filter_user_actions_count, print_on_success)
         train, validation, test = self.session_split(boundary=boundary, save_intermediate=save_intermediate,
                                                      path_to_save=path_to_save)
         return self.process_split_data(train, validation, test, print_on_success)
