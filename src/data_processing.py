@@ -142,6 +142,8 @@ class DatasetLoaderML:
         if self.timestamp_format is not None:
             self.ratings[self.timestamp_column] = pd.to_datetime(self.ratings[self.timestamp_column],
                                                                  errors='coerce').astype("int64") // 10**9
+        self.ratings = self.ratings[self.ratings[self.user_id_column].isin(self.users[self.user_id_column])]
+        self.ratings = self.ratings[self.ratings[self.item_id_column].isin(self.movies[self.item_id_column])]
         if print_on_success:
             print(f'Ratings data loaded: {self.ratings.shape[0]} records')
 
@@ -270,6 +272,7 @@ class DatasetLoaderML:
         num_users, num_items = len(user_id_mapping), len(item_id_mapping)
 
         def apply_mapping(df):
+
             df[self.user_id_column] = df[self.user_id_column].map(user_id_mapping)
             df[self.item_id_column] = df[self.item_id_column].map(item_id_mapping)
 
