@@ -6,6 +6,15 @@ from src.models.sasrec import SASRec
 
 class SASRecLLM(SASRec):
     def __init__(self, item_num, profile_emb_dim, *args, **kwargs):
+        """
+        Инициализирует модель SASRecLLM.
+
+        Args:
+            item_num (int): Количество предметов.
+            profile_emb_dim (int): Размерность эмбеддингов профиля пользователя.
+            *args: Дополнительные позиционные аргументы для SASRec.
+            **kwargs: Дополнительные именованные аргументы для SASRec.
+        """
         # Извлекаем 'reconstruction_layer' из kwargs, если он есть
         self.reconstruction_layer = kwargs.pop('reconstruction_layer', -1)
         
@@ -18,13 +27,32 @@ class SASRecLLM(SASRec):
         self.profile_decoder = nn.Linear(self.hidden_units, profile_emb_dim)
 
     def forward(self, input_ids, user_profile_emb=None, return_hidden_states=False):
+        """
+        Прямой проход модели.
+
+        Args:
+            input_ids (torch.Tensor): Входные последовательности [batch_size, seq_len].
+            user_profile_emb (torch.Tensor, optional): Эмбеддинги профиля пользователя [batch_size, profile_emb_dim].
+            return_hidden_states (bool, optional): Возвращать ли скрытые состояния.
+
+        Returns:
+            torch.Tensor: Логиты предсказаний [batch_size, seq_len, item_num + 1].
+            torch.Tensor or None: Реконструированные эмбеддинги профиля [batch_size, profile_emb_dim] или None.
+            torch.Tensor or None: Вход для реконструкции профиля [batch_size, hidden_units] или None.
+        """
         seqs = self.item_emb(input_ids)
         seqs *= self.hidden_units ** 0.5
 
         batch_size, seq_len = input_ids.size()
         positions = torch.arange(seq_len, dtype=torch.long,
-                                device=input_ids.device).unsqueeze(0).expand(batch_size, -1)
+                                 device=input_ids.device).unsqueeze(0).expand(batch_size, -1)
         seqs += self.pos_emb(positions)
+
+        if user_profile_emb is not None:
+            # Преобразуем эмбеддинги профиля и добавляем к последовательности
+            profile_transformed = self.profile_transform(user_profile_emb)  # [batch_size, hidden_units]
+            profile_transformed = profile_transformed.unsqueeze(1).expand(-1, seq_len, -1)
+            seqs += profile_transformed
 
         seqs = self.emb_dropout(seqs)
 
@@ -66,11 +94,15 @@ class SASRecLLM(SASRec):
                 outputs, self.item_emb.weight.transpose(0, 1)
             )
 
-        # Реконструкция профиля пользователя
-        reconstructed_profile = self.profile_decoder(reconstruction_input)  # [batch_size, profile_emb_dim]
+        reconstructed_profile = None
+        reconstruction_input_final = None
+
+        if user_profile_emb is not None:
+            # Реконструкция профиля пользователя
+            reconstructed_profile = self.profile_decoder(reconstruction_input)  # [batch_size, profile_emb_dim]
+            reconstruction_input_final = reconstruction_input
 
         if return_hidden_states:
-            return outputs, reconstructed_profile, reconstruction_input
+            return outputs, reconstructed_profile, reconstruction_input_final
         else:
             return outputs, reconstructed_profile
-
