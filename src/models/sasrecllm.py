@@ -24,7 +24,7 @@ class SASRecLLM(SASRec):
         self.profile_transform = nn.Linear(profile_emb_dim, self.hidden_units)
 
         # Слой для реконструкции профилей пользователей
-        self.profile_decoder = nn.Linear(self.hidden_units, profile_emb_dim)
+        # self.profile_decoder = nn.Linear(self.hidden_units, profile_emb_dim)
 
     def forward(self, input_ids, user_profile_emb=None, return_hidden_states=False):
         """
@@ -48,11 +48,11 @@ class SASRecLLM(SASRec):
                                  device=input_ids.device).unsqueeze(0).expand(batch_size, -1)
         seqs += self.pos_emb(positions)
 
-        if user_profile_emb is not None:
-            # Преобразуем эмбеддинги профиля и добавляем к последовательности
-            profile_transformed = self.profile_transform(user_profile_emb)  # [batch_size, hidden_units]
-            profile_transformed = profile_transformed.unsqueeze(1).expand(-1, seq_len, -1)
-            seqs += profile_transformed
+        # if user_profile_emb is not None:
+        #     # Преобразуем эмбеддинги профиля и добавляем к последовательности
+        #     profile_transformed = self.profile_transform(user_profile_emb)  # [batch_size, hidden_units]
+        #     # profile_transformed = profile_transformed.unsqueeze(1).expand(-1, seq_len, -1)
+        #     # seqs += profile_transformed
 
         seqs = self.emb_dropout(seqs)
 
@@ -94,15 +94,17 @@ class SASRecLLM(SASRec):
                 outputs, self.item_emb.weight.transpose(0, 1)
             )
 
-        reconstructed_profile = None
-        reconstruction_input_final = None
+        # reconstructed_profile = None
+        # reconstruction_input_final = None
 
-        if user_profile_emb is not None:
+        # if user_profile_emb is not None:
             # Реконструкция профиля пользователя
-            reconstructed_profile = self.profile_decoder(reconstruction_input)  # [batch_size, profile_emb_dim]
-            reconstruction_input_final = reconstruction_input
+            # reconstructed_profile = self.profile_decoder(reconstruction_input)  # [batch_size, profile_emb_dim]
+            # reconstruction_input_final = reconstruction_input
 
-        if return_hidden_states:
-            return outputs, reconstructed_profile, reconstruction_input_final
-        else:
-            return outputs, reconstructed_profile
+        return outputs, reconstruction_input
+
+        # if return_hidden_states:
+        #     return outputs, reconstructed_profile, reconstruction_input_final
+        # else:
+        #     return outputs, reconstructed_profile

@@ -18,10 +18,11 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
         dict: Словарь со средними значениями метрик для каждого k.
     """
     model.eval()
-    recalls = {k: [] for k in k_list}
-    ndcgs = {k: [] for k in k_list}
+    recalls = {k: 0 for k in k_list}
+    ndcgs = {k: 0 for k in k_list}
 
     with torch.no_grad():
+        # c = 0
         for batch in data_loader:
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
@@ -37,7 +38,7 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
             # Получаем предсказания для последнего элемента в последовательности
             logits = outputs[:, -1, :]  # [batch_size, item_num + 1]
 
-            if mode == 'test':
+            if mode in ['test', 'validation']:
                 # В режиме тестирования рассматриваем только один позитивный элемент
                 targets = target_seq[:, -1]  # [batch_size]
                 # Маскируем паддинги, предполагая, что индекс 0 используется для паддинга
@@ -58,23 +59,30 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
                 correct = preds_k.eq(targets.view(-1, 1))  # [batch_size, k]
 
                 # Вычисляем Recall@k
-                recall_k = correct.any(dim=1).float().mean().item()
+                correct_any = correct.any(dim=1).float()
+                recalls[k] += correct_any.sum().item()
 
                 # Вычисляем NDCG@k
                 # Находим позиции (ранги) целевого элемента в топ-K
                 ranks = torch.where(correct)[1] + 1  # +1 для перехода от индекса к рангу
 
                 # Если целевой элемент найден в топ-K, рассчитываем NDCG, иначе 0
-                ndcg_k = (1 / torch.log2(ranks.float() + 1)).mean().item() if ranks.numel() > 0 else 0.0
+                ndcg_k = (1 / torch.log2(ranks.float() + 1)).sum().item() if ranks.numel() > 0 else 0.0
 
                 # Добавляем метрики для текущего k
-                recalls[k].append(recall_k)
-                ndcgs[k].append(ndcg_k)
-
+                # recalls[k] += (recall_k)
+                ndcgs[k] += ndcg_k
+            # c += 1
+            # if c == 3:
+            #     break
     # Вычисляем средние значения метрик по всем батчам
     metrics = {}
     for k in k_list:
-        metrics[f'Recall@{k}'] = np.mean(recalls[k])
-        metrics[f'NDCG@{k}'] = np.mean(ndcgs[k])
+        # metrics[f'Recall@{k}'] = np.mean(recalls[k])
+        # metrics[f'NDCG@{k}'] = np.mean(ndcgs[k])
+        # metrics[f'fIsIn{k}'] = np.mean(is_in_k[k])
+        metrics[f'Recall@{k}'] = (recalls[k] / len(data_loader.dataset))
+        metrics[f'NDCG@{k}'] = (ndcgs[k] / len(data_loader.dataset))
+        # metrics[f'fIsIn{k}'] = (is_in_k[k]/len(data_loader))
 
     return metrics

@@ -13,6 +13,7 @@ from src.utils import set_seed, load_user_profile_embeddings
 from src.dataset import SequenceDataset
 from src.evaluation import evaluate_model
 import mlflow
+from tqdm import tqdm
 
 # Активируем обнаружение аномалий в PyTorch
 torch.autograd.set_detect_anomaly(True)
@@ -46,7 +47,7 @@ def train_model(config):
     model_name = config['model']['model_name']
 
     if model_name == 'SASRecLLM':
-        user_profile_embeddings = load_user_profile_embeddings(
+        user_profile_embeddings, null_profile_binary_mask = load_user_profile_embeddings(
             config['data']['user_profile_embeddings_path'],
             user_id_mapping
         )  # Tensor размерности [num_users, profile_emb_dim]
@@ -56,6 +57,7 @@ def train_model(config):
         user_profile_embeddings = user_profile_embeddings.to(device)
     else:
         user_profile_embeddings = None
+        null_profile_binary_mask = None
         profile_emb_dim = None
 
     # Создание датасетов
@@ -95,7 +97,8 @@ def train_model(config):
     for epoch in range(1, config['training']['epochs'] + 1):
         model.train()
         total_loss = 0
-        for batch in train_loader:
+        # c = 0
+        for batch in tqdm(train_loader):
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
@@ -105,22 +108,25 @@ def train_model(config):
                 # Получаем эмбеддинги профиля пользователя, если они существуют
                 if user_profile_embeddings is not None:
                     user_profile_emb = user_profile_embeddings[user_ids]
+                    null_profile_binary_mask_batch = null_profile_binary_mask[user_ids]
                 else:
                     user_profile_emb = None
 
-                outputs, reconstructed_profile = model(input_seq, user_profile_emb=user_profile_emb)
+                outputs, hidden_for_reconstruction = model(input_seq, user_profile_emb=user_profile_emb)
 
                 logits = outputs.view(-1, outputs.size(-1))
                 targets = target_seq.view(-1)
 
+                # лосс модели
                 loss_model = criterion(logits, targets)
 
-                if reconstructed_profile is not None:
-                    loss_guide = nn.MSELoss()(reconstructed_profile, user_profile_emb)
-                    if epoch < fine_tune_epoch:
-                        loss = alpha * loss_guide + (1 - alpha) * loss_model
-                    else:
-                        loss = loss_model
+                # pass
+                user_profile_emb_transformed = model.profile_transform(user_profile_emb)
+                user_profile_emb_transformed[null_profile_binary_mask_batch] = hidden_for_reconstruction[null_profile_binary_mask_batch]
+
+                loss_guide = nn.MSELoss()(hidden_for_reconstruction, user_profile_emb_transformed)
+                if epoch < fine_tune_epoch:
+                    loss = alpha * loss_guide + (1 - alpha) * loss_model
                 else:
                     loss = loss_model
             else:
@@ -143,6 +149,10 @@ def train_model(config):
             optimizer.step()
 
             total_loss += loss.item()
+
+            # c += 1
+            # if c == 1:
+            #     break
 
         avg_loss = total_loss / len(train_loader)
         print(f"Epoch {epoch}/{config['training']['epochs']}, Loss: {avg_loss:.4f}")
@@ -170,7 +180,7 @@ def train_model(config):
     # Сохранение модели
     model_save_path = os.path.join(model_dir, f'{model_name}_model.pt')
     torch.save(model.state_dict(), model_save_path)
-    mlflow.log_artifact(model_save_path)
+    # mlflow.log_artifact(model_save_path, artifact_path=model_dir)
 
     mlflow.end_run()
 
