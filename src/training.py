@@ -42,6 +42,7 @@ def train_model(config):
 
     # Определение устройства
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('DEVICE:', device)
 
     # Получение имени модели из конфигурации
     model_name = config['model']['model_name']
