@@ -20,7 +20,7 @@ training:
   eval_every: 1
   model_dir: models/
   alpha: 0.8  # Параметр для комбинированной функции потерь
-  fine_tune_epoch: 25  # Эпоха, после которой начинаем тонкую настройку
+  fine_tune_epoch: 15  # Эпоха, после которой начинаем тонкую настройку
 
 data:
   train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/train_sequences.pkl
@@ -30,4 +30,4 @@ data:
   counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/counts.pkl
   user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/embedding_kion.json  # Путь к эмбеддингам профилей пользователей
 
-experiment_name: "SASRecLLM Experiment"
+experiment_name: "SASRecLLM Kion Experiment"

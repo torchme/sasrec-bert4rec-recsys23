@@ -1,17 +1,17 @@
-# experiments/configs/sasrec.yaml
-
-seed: 42  # Зерно на верхнем уровне
+seed: 42
 
 model:
-  model_name: SASRec
-  item_num: 0  # Значения будут обновлены в коде
+  model_name: SASRecLLM
+  item_num: 0  # Будет обновлено в коде
   user_num: 0
   maxlen: 50
   hidden_units: 128
   num_blocks: 2
   num_heads: 2
   dropout_rate: 0.2
-  user_emb_dim: 64  # Если используется SASRecMod или BERT4RecMod
+  initializer_range: 0.02
+  add_head: True
+  reconstruction_layer: 1  # Используем последний слой для реконструкции
 
 training:
   batch_size: 256
@@ -19,6 +19,8 @@ training:
   learning_rate: 0.0001
   eval_every: 1
   model_dir: models/
+  alpha: 0.8  # Параметр для комбинированной функции потерь
+  fine_tune_epoch: 35  # Эпоха, после которой начинаем тонкую настройку
 
 data:
   train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/train_sequences.pkl
@@ -28,4 +30,4 @@ data:
   counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/counts.pkl
   user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/embedding_kion.json  # Путь к эмбеддингам профилей пользователей
 
-experiment_name: "SASRec Kion Experiment"
+experiment_name: "SASRecLLM Kion Experiment"

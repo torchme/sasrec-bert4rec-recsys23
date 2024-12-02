@@ -10,5 +10,5 @@
 #SBATCH --constraint="type_a|type_b|type_c|type_e"
 
 # Executable
-chmod +x experiments/bash/kion_en/sasrec.sh
-srun experiments/bash/kion_en/sasrec_llm.sh
+chmod +x experiments/bash/rees46/sasrec.sh
+srun experiments/bash/rees46/sasrec.sh

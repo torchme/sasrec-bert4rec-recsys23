@@ -11,7 +11,7 @@ for epoch in "${finetune_epochs[@]}"; do
     alpha_no_point=$(echo "$a" | sed 's/\.//g')
 
     # Construct the config file path
-    config_file="experiments/configs/kion_en/sasrec_llm-${alpha_no_point}-${epoch}.yaml"
+    config_file="experiments/configs/beauty/sasrec_llm-${alpha_no_point}-${epoch}.yaml"
 
     # Run the command
     echo "Running: PYTHONPATH=../../../ python -m src.training --config $config_file"
