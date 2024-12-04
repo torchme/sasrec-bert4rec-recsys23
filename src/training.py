@@ -102,18 +102,25 @@ def train_model(config):
             user_ids = user_ids.to(device)
 
             if model_name == 'SASRecLLM':
-                # Для SASRecLLM получаем outputs и reconstructed_profile
-                user_profile_emb = user_profile_embeddings[user_ids].to(device)
+                # Получаем эмбеддинги профиля пользователя, если они существуют
+                if user_profile_embeddings is not None:
+                    user_profile_emb = user_profile_embeddings[user_ids]
+                else:
+                    user_profile_emb = None
+
                 outputs, reconstructed_profile = model(input_seq, user_profile_emb=user_profile_emb)
 
                 logits = outputs.view(-1, outputs.size(-1))
                 targets = target_seq.view(-1)
 
                 loss_model = criterion(logits, targets)
-                loss_guide = nn.MSELoss()(reconstructed_profile, user_profile_emb)
 
-                if epoch < fine_tune_epoch:
-                    loss = alpha * loss_guide + (1 - alpha) * loss_model
+                if reconstructed_profile is not None:
+                    loss_guide = nn.MSELoss()(reconstructed_profile, user_profile_emb)
+                    if epoch < fine_tune_epoch:
+                        loss = alpha * loss_guide + (1 - alpha) * loss_model
+                    else:
+                        loss = loss_model
                 else:
                     loss = loss_model
             else:
@@ -145,15 +152,15 @@ def train_model(config):
 
         # Оценка на валидационном наборе
         if epoch % config['training']['eval_every'] == 0:
-            val_metrics = evaluate_model(model, valid_loader, device)
+            val_metrics = evaluate_model(model, valid_loader, device, mode='validation')
             print(f"Validation Metrics: {val_metrics}")
             # Логирование метрик с заменой недопустимых символов
             for metric_name, metric_value in val_metrics.items():
                 sanitized_metric_name = metric_name.replace('@', '_')
                 mlflow.log_metric(f'val_{sanitized_metric_name}', metric_value, step=epoch)
 
-    # Оценка на тестовом наборе
-    test_metrics = evaluate_model(model, test_loader, device)
+    # Оценка на тестовом наборе данных с использованием нового метода
+    test_metrics = evaluate_model(model, test_loader, device, mode='test')
     print(f"Test Metrics: {test_metrics}")
     # Логирование метрик с заменой недопустимых символов
     for metric_name, metric_value in test_metrics.items():
