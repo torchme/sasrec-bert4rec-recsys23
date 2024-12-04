@@ -30,4 +30,4 @@ data:
   counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/counts.pkl
   user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/embedding_kion.json  # Путь к эмбеддингам профилей пользователей
 
-experiment_name: "SASRecLLM Kion Experiment"
+experiment_name: "SASRecLLM-04-25 Kion Experiment"

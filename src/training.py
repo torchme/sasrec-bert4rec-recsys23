@@ -56,6 +56,7 @@ def train_model(config):
 
         # Перемещаем эмбеддинги профилей пользователей на устройство
         user_profile_embeddings = user_profile_embeddings.to(device)
+        null_profile_binary_mask = null_profile_binary_mask.to(device)
     else:
         user_profile_embeddings = None
         null_profile_binary_mask = None
@@ -99,7 +100,7 @@ def train_model(config):
         model.train()
         total_loss = 0
         # c = 0
-        for batch in tqdm(train_loader):
+        for batch in (train_loader):
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
@@ -169,6 +170,13 @@ def train_model(config):
             for metric_name, metric_value in val_metrics.items():
                 sanitized_metric_name = metric_name.replace('@', '_')
                 mlflow.log_metric(f'val_{sanitized_metric_name}', metric_value, step=epoch)
+
+            test_metrics = evaluate_model(model, test_loader, device, mode='test')
+            print(f"Test Metrics: {test_metrics}")
+            # Логирование метрик с заменой недопустимых символов
+            for metric_name, metric_value in test_metrics.items():
+                sanitized_metric_name = metric_name.replace('@', '_')
+                mlflow.log_metric(f'test_{sanitized_metric_name}', metric_value, step=epoch)
 
     # Оценка на тестовом наборе данных с использованием нового метода
     test_metrics = evaluate_model(model, test_loader, device, mode='test')
