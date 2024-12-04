@@ -1,0 +1,24 @@
+../data/raw/megamarket
+true
+megamarket.parquet
+item_id, category_id, price
+user_id
+user_id, item_id, category_id, price, datetime, event
+items.csv
+users.csv
+interactions.csv
+,
+utf-8
+true
+item_id
+user_id
+datetime
+yyyy-mm-dd hh:mm:ss.msmsms
+event
+0, 2
+false
+_, _
+none
+none
+none
+none

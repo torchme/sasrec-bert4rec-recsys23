@@ -1,0 +1,24 @@
+../data/raw/zvuk
+true
+zvuk-interactions.parquet
+track_id
+user_id
+track_id, user_id, session_id, datetime, play_duration
+items.csv
+users.csv
+interactions.csv
+,
+utf-8
+true
+track_id
+user_id
+datetime
+yyyy-mm-dd:hh:mm:ss
+play_duration
+0, 500
+false
+_, _
+none
+none
+none
+none

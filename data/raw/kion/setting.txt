@@ -1,4 +1,6 @@
 ../data/raw/kion
+false
+none
 item_id, content_type, title, title_orig, release_year, genres, countries, for_kids, age_rating, studios, directors, actors, description, keywords
 user_id, age, income, sex, kids_flg
 user_id, item_id, last_watch_dt, total_dur, watched_pct
@@ -11,8 +13,12 @@ True
 item_id
 user_id
 last_watch_dt
+yyyy-mm-dd
 watched_pct
 0, 100
-yyyy-mm-dd
 False
 age, sex
+none
+none
+none
+none

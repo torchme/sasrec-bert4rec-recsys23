@@ -1,4 +1,6 @@
 ../data/raw/amazon_beauty
+true
+ratings_Beauty.csv
 ProductId
 UserId
 Timestamp, UserId, Rating, ProductId
@@ -11,8 +13,12 @@ True
 ProductId
 UserId
 Timestamp
+None
 Rating
 1, 5
-None
 False
 _, _
+none
+none
+none
+none

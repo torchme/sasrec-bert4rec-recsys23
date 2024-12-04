@@ -1,4 +1,6 @@
 ../data/raw/rees46-2019-Nov
+true
+2019-Nov.csv
 product_id, category_id, category_code, brand, price
 user_id, user_session
 event_time, user_id, user_session, product_id, event_type, interest
@@ -11,8 +13,12 @@ True
 product_id
 user_id
 event_time
+UTC
 interest
 -0.5, 1
-UTC
 False
 _, _
+none
+none
+none
+none
