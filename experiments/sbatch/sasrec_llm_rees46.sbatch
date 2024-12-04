@@ -1,5 +1,5 @@
 #! /bin/bash
-#SBATCH --job-name="kion-sasrec-llm"
+#SBATCH --job-name="rees46-sasrec-llm"
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=0-23:0
