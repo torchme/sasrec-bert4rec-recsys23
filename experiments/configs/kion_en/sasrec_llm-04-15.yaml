@@ -11,7 +11,7 @@ model:
   dropout_rate: 0.2
   initializer_range: 0.02
   add_head: True
-  reconstruction_layer: 1  # Используем последний слой для реконструкции
+  reconstruction_layer: -1 # Используем последний слой для реконструкции
 
 training:
   batch_size: 256
