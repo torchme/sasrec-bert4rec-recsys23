@@ -27,7 +27,7 @@ def reduce_dim(params):
         user2embs = json.load(f)
 
     users = list(user2embs.keys())
-    embs = np.array(user2embs.values())
+    embs = np.array(list(user2embs.values()))
     reduced_embs = reduce_fn(embs, n_components)
     new_dct = dict(zip(users, reduced_embs))
 
