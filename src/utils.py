@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import json
 
+
 def set_seed(seed):
     """Устанавливает зерно для воспроизводимости."""
     random.seed(seed)
