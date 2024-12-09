@@ -37,7 +37,7 @@ def reduce_dim(params):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process a configuration path.")
-    parser.add_argument('config_path', type=str, help='Path to the configuration file')
+    parser.add_argument('--config_path', type=str, help='Path to the configuration file')
 
     args = parser.parse_args()
     print(f"The configuration path is: {args.config_path}")
