@@ -1,4 +1,40 @@
 {
+  "kion_full": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/embedding_kion.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/embedding_kion-128.json",
+    "n_components": 128,
+    "reducer": "UMAP"
+  },
+  "kion_short": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/short_descriptions/embeddings/short_kion_en_embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/short_descriptions/embeddings/short_kion_en_embs-128.json",
+    "n_components": 128,
+    "reducer": "UMAP"
+  },
+  "kion_ru": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/russian_desc/kion-ru-embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/russian_desc/kion-ru-embs-128.json",
+    "n_components": 128,
+    "reducer": "UMAP"
+  },
+  "beauty_full": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty-128.json",
+    "n_components": 128,
+    "reducer": "UMAP"
+  },
+  "beauty_short": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_embedding_amazon_beauty.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_embedding_amazon_beauty-128.json",
+    "n_components": 128,
+    "reducer": "UMAP"
+  },
+  "beauty_short_small_emb": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_descriptions/kalm_short_embedding_amazon_beauty.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_descriptions/kalm_short_embedding_amazon_beauty-128.json",
+    "n_components": 128,
+    "reducer": "UMAP"
+  },
   "rees_full": {
     "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/embeddings/embedding_rees46.json",
     "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/embeddings/embedding_rees46-128.json",

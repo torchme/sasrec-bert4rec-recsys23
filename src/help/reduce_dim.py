@@ -14,11 +14,12 @@ def reduce_dim(params):
         return reduced_emb
 
     def umap_reducer(mtrx, n_components):
-        umap_reducer = umap.UMAP(n_components)
+        umap_reducer = umap.UMAP(n_components=n_components)
         reduced_emb = umap_reducer.fit_transform(mtrx)
         return reduced_emb
 
     n_components = params['n_components']
+    print(n_components)
     embeddings_path = params['embeddings_path']
     save_path = params['save_path']
     reduce_fn = umap_reducer if params['reducer'] == 'UMAP' else pca_reducer
