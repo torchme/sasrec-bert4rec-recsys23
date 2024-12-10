@@ -1,0 +1,38 @@
+seed: 42
+
+model:
+  model_name: SASRecLLM
+  item_num: 0  # Будет обновлено в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 128
+  num_blocks: 2
+  num_heads: 2
+  dropout_rate: 0.2
+  initializer_range: 0.02
+  add_head: True
+  reconstruction_layer: 1
+  weighting_scheme: exponential
+  weight_scale: 0.1
+  use_down_scale: False
+  use_upscale: False
+
+training:
+  batch_size: 256
+  epochs: 50
+  learning_rate: 0.0001
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.6
+  fine_tune_epoch: 10
+  reconstruct_loss: RMSE
+
+data:
+  train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/counts.pkl
+  user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/short_descriptions/embeddings/short_kion_en_embs-128.json
+
+experiment_name: "SASRecLLM-04-15 Kion Experiment"

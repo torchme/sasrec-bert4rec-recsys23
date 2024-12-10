@@ -9,7 +9,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from src.models.sasrec import SASRec
 from src.models.sasrecllm import SASRecLLM
-from src.utils import set_seed, load_user_profile_embeddings
+from src.utils import set_seed, load_user_profile_embeddings, init_criterion_reconstruct
 from src.dataset import SequenceDataset
 from src.evaluation import evaluate_model
 import mlflow
@@ -81,6 +81,11 @@ def train_model(config):
     # Оптимизатор и функция потерь
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['training']['learning_rate'])
     criterion = nn.CrossEntropyLoss(ignore_index=0)  # Игнорируем паддинги
+    if model_name == 'SASRecLLM':
+        if 'reconstruct_loss' in config['training']:
+            criterion_reconstruct_fn = init_criterion_reconstruct(config['training']['reconstruct_loss'])
+        else:
+            criterion_reconstruct_fn = lambda x,y: nn.MSELoss()(x,y)
 
     # Создание директории для сохранения модели
     model_dir = config['training']['model_dir']
@@ -100,7 +105,7 @@ def train_model(config):
         model.train()
         total_loss = 0
         # c = 0
-        for batch in (train_loader):
+        for batch in tqdm(train_loader):
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
@@ -123,10 +128,15 @@ def train_model(config):
                 loss_model = criterion(logits, targets)
 
                 # pass
-                user_profile_emb_transformed = model.profile_transform(user_profile_emb)
+                if model.use_down_scale:
+                    user_profile_emb_transformed = model.profile_transform(user_profile_emb)
+                else:
+                    user_profile_emb_transformed = user_profile_emb.detach().clone()
+                if model.use_upscale:
+                    hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
                 user_profile_emb_transformed[null_profile_binary_mask_batch] = hidden_for_reconstruction[null_profile_binary_mask_batch]
 
-                loss_guide = nn.MSELoss()(hidden_for_reconstruction, user_profile_emb_transformed)
+                loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
                 if epoch < fine_tune_epoch:
                     loss = alpha * loss_guide + (1 - alpha) * loss_model
                 else:
@@ -198,6 +208,10 @@ def get_model(model_name, config, device, profile_emb_dim=None):
         model = SASRecLLM(
             item_num=config['model']['item_num'],
             profile_emb_dim=profile_emb_dim,
+            weighting_scheme = config['model']['weighting_scheme'] if 'weighting_scheme' in config['model'] else 'mean',
+            weight_scale=config['model']['weight_scale'] if 'weight_scale' in config['model'] else None,
+            use_down_scale=config['model']['use_down_scale'] if 'use_down_scale' in config['model'] else True,
+            use_upscale=config['model']['use_upscale'] if 'use_upscale' in config['model'] else False,
             maxlen=config['model']['maxlen'],
             hidden_units=config['model']['hidden_units'],
             num_blocks=config['model']['num_blocks'],
@@ -222,6 +236,13 @@ def get_model(model_name, config, device, profile_emb_dim=None):
         raise ValueError(f"Unknown model name: {model_name}")
     return model
 
+
+def process_config(config_file):
+    with open(config_file, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    train_model(config)
+
+
 if __name__ == '__main__':
     import argparse
 
@@ -229,7 +250,9 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, required=True, help="Path to config file")
     args = parser.parse_args()
 
-    with open(args.config, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
+    process_config(args.config)
 
-    train_model(config)
+    # with open(args.config, 'r', encoding='utf-8') as f:
+    #     config = yaml.safe_load(f)
+    #
+    # train_model(config)

@@ -3,9 +3,12 @@
 import torch
 import torch.nn as nn
 from src.models.sasrec import SASRec
+from src.models.utils import mean_weightening, exponential_weightening, SimpleAttentionAggregator
+
 
 class SASRecLLM(SASRec):
-    def __init__(self, item_num, profile_emb_dim, *args, **kwargs):
+    def __init__(self, item_num, profile_emb_dim, weighting_scheme: str='mean', use_down_scale=True, use_upscale=False, weight_scale:float=None,
+                 *args, **kwargs):
         """
         Инициализирует модель SASRecLLM.
 
@@ -21,8 +24,23 @@ class SASRecLLM(SASRec):
         super().__init__(item_num, *args, **kwargs)
 
         # Трансформация эмбеддингов профилей пользователей
-        self.profile_transform = nn.Linear(profile_emb_dim, self.hidden_units)
+        if weighting_scheme == 'mean':
+            self.weighting_fn = mean_weightening
+            self.weighting_kwargs = {}
+        elif weighting_scheme == 'exponential':
+            self.weighting_fn = exponential_weightening
+            self.weighting_kwargs = {'weight_scale': weight_scale}
+        elif weighting_scheme == 'attention':
+            self.weighting_fn = SimpleAttentionAggregator(self.hidden_units)
+            self.weighting_kwargs = {}
 
+        self.use_down_scale = use_down_scale
+        self.use_upscale = use_upscale
+
+        if use_down_scale:
+            self.profile_transform = nn.Linear(profile_emb_dim, self.hidden_units)
+        if use_upscale:
+            self.hidden_layer_transform = nn.Linear(self.hidden_units, profile_emb_dim)
         # Слой для реконструкции профилей пользователей
         # self.profile_decoder = nn.Linear(self.hidden_units, profile_emb_dim)
 
@@ -84,9 +102,9 @@ class SASRecLLM(SASRec):
 
         # Получаем представление для реконструкции профиля из outputs до применения add_head
         if self.reconstruction_layer == -1:
-            reconstruction_input = outputs.mean(dim=1)  # [batch_size, hidden_units]
+            reconstruction_input = self.weighting_fn(outputs, **self.weighting_kwargs)  # [batch_size, hidden_units]
         else:
-            reconstruction_input = hidden_states[self.reconstruction_layer].mean(dim=1)  # [batch_size, hidden_units]
+            reconstruction_input = self.weighting_fn(hidden_states[self.reconstruction_layer], **self.weighting_kwargs)  # [batch_size, hidden_units]
 
         # Применяем add_head после сохранения reconstruction_input
         if self.add_head:
@@ -108,3 +126,4 @@ class SASRecLLM(SASRec):
         #     return outputs, reconstructed_profile, reconstruction_input_final
         # else:
         #     return outputs, reconstructed_profile
+

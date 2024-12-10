@@ -5,6 +5,8 @@ import numpy as np
 import torch
 import json
 
+from torch import nn
+
 
 def set_seed(seed):
     """Устанавливает зерно для воспроизводимости."""
@@ -38,3 +40,13 @@ def load_user_profile_embeddings(file_path, user_id_mapping):
     user_profiles_tensor = torch.tensor(user_profiles_list, dtype=torch.float)
     null_profile_binary_mask_tensor = torch.BoolTensor(null_profile_binary_mask)
     return user_profiles_tensor, null_profile_binary_mask_tensor
+
+
+def init_criterion_reconstruct(criterion_name):
+    if criterion_name == 'MSE':
+        return lambda x,y: nn.MSELoss()(x,y)
+    if criterion_name == 'RMSE':
+        return lambda x,y: torch.sqrt(nn.MSELoss()(x,y))
+    if criterion_name == 'CosSim':
+        return lambda x,y: nn.CosineSimilarity(dim=1, eps=1e-6)(x,y)
+    raise Exception('Not existing reconstruction loss')
