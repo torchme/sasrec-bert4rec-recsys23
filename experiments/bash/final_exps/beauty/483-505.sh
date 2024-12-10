@@ -1,5 +1,4 @@
 #!/bin/bash
 . /home/nseverin/sasrec-bert4rec-recsys23/venv/bin/activate
 
-config_path = "experiments/configs/final_sasrec_exps/beauty"
-PYTHONPATH=../../../../ python -m src.process_config_batch --folder_path "$config_path" --start 483 --end 505
+PYTHONPATH=../../../../ python -m src.process_config_batch --folder_path "experiments/configs/final_sasrec_exps/beauty" --start 483 --end 505
