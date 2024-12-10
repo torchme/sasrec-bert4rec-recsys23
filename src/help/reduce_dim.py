@@ -14,7 +14,7 @@ def reduce_dim(params):
         return reduced_emb
 
     def umap_reducer(mtrx, n_components):
-        umap_reducer = umap.UMAP(n_components=n_components)
+        umap_reducer = umap.UMAP(n_components=128)
         reduced_emb = umap_reducer.fit_transform(mtrx)
         return reduced_emb
 

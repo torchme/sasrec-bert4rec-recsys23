@@ -53,6 +53,7 @@ def train_model(config):
             user_id_mapping
         )  # Tensor размерности [num_users, profile_emb_dim]
         profile_emb_dim = user_profile_embeddings.size(1)
+        assert profile_emb_dim != 2
 
         # Перемещаем эмбеддинги профилей пользователей на устройство
         user_profile_embeddings = user_profile_embeddings.to(device)

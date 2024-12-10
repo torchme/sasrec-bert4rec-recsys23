@@ -34,29 +34,5 @@
     "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_descriptions/kalm_short_embedding_amazon_beauty-128.json",
     "n_components": 128,
     "reducer": "UMAP"
-  },
-  "rees_full": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/embeddings/embedding_rees46.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/embeddings/embedding_rees46-128.json",
-    "n_components": 128,
-    "reducer": "UMAP"
-  },
-  "rees_short": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/short_descriptions/short_embedding_rees.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/short_descriptions/short_embedding_rees-128.json",
-    "n_components": 128,
-    "reducer": "UMAP"
-  },
-  "rees_needs": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/needs_e5/rees_needs-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/needs_e5/rees_needs-e5-embs-128.json",
-    "n_components": 128,
-    "reducer": "UMAP"
-  },
-  "needs-json": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/needs_json_e5/rees_needs_json-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/needs_json_e5/rees_needs_json-e5-embs-128.json",
-    "n_components": 128,
-    "reducer": "UMAP"
   }
 }
