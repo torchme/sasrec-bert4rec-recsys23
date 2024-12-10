@@ -131,9 +131,10 @@ def train_model(config):
                 if model.use_down_scale:
                     user_profile_emb_transformed = model.profile_transform(user_profile_emb)
                 else:
-                    user_profile_emb_transformed = user_profile_emb.detach().clone()
+                    user_profile_emb_transformed = user_profile_emb.detach().clone().to(device)
                 if model.use_upscale:
                     hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
+                print(user_profile_emb_transformed.shape, hidden_for_reconstruction.shape, null_profile_binary_mask_batch.shape)
                 user_profile_emb_transformed[null_profile_binary_mask_batch] = hidden_for_reconstruction[null_profile_binary_mask_batch]
 
                 loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
