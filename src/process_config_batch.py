@@ -5,35 +5,29 @@ from src.training import process_config
 
 
 def process_files_in_range(folder_path, start, end):
-    try:
-        # List all files in the directory
-        files = os.listdir(folder_path)
+    # List all files in the directory
+    files = os.listdir(folder_path)
 
-        # Sort files alphabetically
-        files.sort()
+    # Sort files alphabetically
+    files.sort()
 
-        # Extract the relevant range of files
-        if start is None or start < 0:
-            files_to_process = files[:end]
-        elif end is None or end < 0:
-            files_to_process = files[start:]
+    # Extract the relevant range of files
+    if start is None or start < 0:
+        files_to_process = files[:end]
+    elif end is None or end < 0:
+        files_to_process = files[start:]
+    else:
+        files_to_process = files[start:end]
+
+    # Process each file in the range
+    for file in files_to_process:
+        file_path = os.path.join(folder_path, file)
+
+        if os.path.isfile(file_path):  # Check if it's a file
+            print(f"Processing file: {file_path}")
+            process_config(file_path)
         else:
-            files_to_process = files[start:end]
-
-        # Process each file in the range
-        for file in files_to_process:
-            file_path = os.path.join(folder_path, file)
-
-            if os.path.isfile(file_path):  # Check if it's a file
-                print(f"Processing file: {file_path}")
-                process_config(file_path)
-            else:
-                print(f"Skipping non-file: {file_path}")
-
-    except Exception as e:
-        print(folder_path, start, end)
-        print(f"An error occurred: {e}")
-        print('===============')
+            print(f"Skipping non-file: {file_path}")
 
 
 if __name__ == "__main__":
