@@ -10,7 +10,9 @@ def mean_weightening(hidden_states):
 
 def exponential_weightening(hidden_states, weight_scale):
     """hidden_states: [batch_size, seq_len, hidden_size]"""
-    indices = torch.arange(hidden_states.shape[1]).float()  # [0, 1, 2, ..., seq_len-1]
+    device = hidden_states.device
+
+    indices = torch.arange(hidden_states.shape[1]).float().to(device)  # [0, 1, 2, ..., seq_len-1]
     weights = torch.exp(weight_scale * indices)  # Shape: [seq_len]
 
     # Normalize weights (optional, for scale invariance)
