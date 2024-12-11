@@ -32,5 +32,5 @@ def load_user_profile_embeddings(file_path, user_id_mapping):
             # Если эмбеддинг не найден, инициализируем нулями
             user_profiles_list.append([0.0] * embedding_dim)
 
-    user_profiles_tensor = torch.tensor(user_profiles_list, dtype=torch.float)
+    user_profiles_tensor = torch.tensor(user_profiles_list, dtype=torch.float).to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     return user_profiles_tensor

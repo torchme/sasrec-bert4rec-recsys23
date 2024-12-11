@@ -1,0 +1,32 @@
+seed: 42
+
+model:
+  model_name: BERT4RecLLM
+  item_num: 0  # Значение будет обновлено в коде
+  maxlen: 50
+  hidden_units: 128
+  num_heads: 4
+  num_blocks: 2  # Используется как num_layers для BERT4Rec и BERT4RecLLM
+  dropout_rate: 0.2
+  initializer_range: 0.02
+  add_head: True
+  reconstruction_layer: -1  # Используется для выбора слоя для реконструкции профиля
+
+training:
+  batch_size: 16
+  epochs: 4
+  learning_rate: 0.001
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.5  # Параметр для комбинированной функции потерь (не используется для BERT4RecLLM, но можно оставить)
+  fine_tune_epoch: 25  # Эпоха, после которой начинаем тонкую настройку (не используется для BERT4RecLLM, но можно оставить)
+
+data:
+  train_sequences: data/processed/train_sequences.pkl
+  valid_sequences: data/processed/valid_sequences.pkl
+  test_sequences: data/processed/test_sequences.pkl
+  mappings: data/processed/mappings.pkl
+  counts: data/processed/counts.pkl
+  user_profile_embeddings_path: data/emb/embeddings.json  # Путь к эмбеддингам профилей пользователей
+
+experiment_name: "BERT4RecLLM Experiment"

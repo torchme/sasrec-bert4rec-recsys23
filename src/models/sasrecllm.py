@@ -40,6 +40,8 @@ class SASRecLLM(SASRec):
             torch.Tensor or None: Реконструированные эмбеддинги профиля [batch_size, profile_emb_dim] или None.
             torch.Tensor or None: Вход для реконструкции профиля [batch_size, hidden_units] или None.
         """
+        device = input_ids.device
+
         seqs = self.item_emb(input_ids)
         seqs *= self.hidden_units ** 0.5
 
@@ -48,8 +50,10 @@ class SASRecLLM(SASRec):
                                  device=input_ids.device).unsqueeze(0).expand(batch_size, -1)
         seqs += self.pos_emb(positions)
 
+        
         if user_profile_emb is not None:
             # Преобразуем эмбеддинги профиля и добавляем к последовательности
+            user_profile_emb = user_profile_emb.to(device)
             profile_transformed = self.profile_transform(user_profile_emb)  # [batch_size, hidden_units]
             profile_transformed = profile_transformed.unsqueeze(1).expand(-1, seq_len, -1)
             seqs += profile_transformed
@@ -61,7 +65,7 @@ class SASRecLLM(SASRec):
 
         tl = seqs.shape[1]
         attention_mask = ~torch.tril(
-            torch.ones((tl, tl), dtype=torch.bool, device=seqs.device)
+            torch.ones((tl, tl), dtype=torch.bool, device=device)
         )
 
         hidden_states = []
@@ -96,7 +100,7 @@ class SASRecLLM(SASRec):
 
         reconstructed_profile = None
         reconstruction_input_final = None
-
+        
         if user_profile_emb is not None:
             # Реконструкция профиля пользователя
             reconstructed_profile = self.profile_decoder(reconstruction_input)  # [batch_size, profile_emb_dim]

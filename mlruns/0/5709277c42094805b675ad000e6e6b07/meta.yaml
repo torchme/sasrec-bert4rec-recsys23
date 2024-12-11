@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/redpo/Desktop/ITMO/ITMO%20RESEARCH/sasrec-bert4rec-recsys23/mlruns/0/5709277c42094805b675ad000e6e6b07/artifacts
+end_time: 1733950040126
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 5709277c42094805b675ad000e6e6b07
+run_name: SASRecLLM Experiment
+run_uuid: 5709277c42094805b675ad000e6e6b07
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1733950039907
+status: 3
+tags: []
+user_id: redpo

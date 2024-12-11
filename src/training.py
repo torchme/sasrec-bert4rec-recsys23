@@ -9,6 +9,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from src.models.sasrec import SASRec
 from src.models.sasrecllm import SASRecLLM
+from src.models.bert4rec import BERT4Rec
+from src.models.bert4recllm import BERT4RecLLM
 from src.utils import set_seed, load_user_profile_embeddings
 from src.dataset import SequenceDataset
 from src.evaluation import evaluate_model
@@ -16,6 +18,13 @@ import mlflow
 
 # Активируем обнаружение аномалий в PyTorch
 torch.autograd.set_detect_anomaly(True)
+
+def validate_config(config):
+    # Проверка типов параметров
+    assert isinstance(config['training']['learning_rate'], (float, int)), "learning_rate должен быть числом"
+    assert isinstance(config['model']['num_blocks'], int), "num_blocks должен быть целым числом"
+    assert isinstance(config['model']['num_heads'], int), "num_heads должен быть целым числом"
+    # Добавьте другие проверки при необходимости
 
 def train_model(config):
     # Установка зерна для воспроизводимости
@@ -39,13 +48,16 @@ def train_model(config):
     config['model']['item_num'] = num_items
     config['model']['user_num'] = num_users
 
+    # Валидация конфигурации
+    validate_config(config)
+
     # Определение устройства
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Получение имени модели из конфигурации
     model_name = config['model']['model_name']
 
-    if model_name == 'SASRecLLM':
+    if model_name in ['SASRecLLM', 'BERT4RecLLM']:
         user_profile_embeddings = load_user_profile_embeddings(
             config['data']['user_profile_embeddings_path'],
             user_id_mapping
@@ -74,7 +86,13 @@ def train_model(config):
         profile_emb_dim=profile_emb_dim
     )
 
+    # Проверка на NaN в весах модели
+    for name, param in model.named_parameters():
+        if torch.isnan(param).any() or torch.isinf(param).any():
+            print(f"NaN or Inf detected in model parameter: {name}")
+
     # Оптимизатор и функция потерь
+    print(f"Learning rate type: {type(config['training']['learning_rate'])}, value: {config['training']['learning_rate']}")
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['training']['learning_rate'])
     criterion = nn.CrossEntropyLoss(ignore_index=0)  # Игнорируем паддинги
 
@@ -95,13 +113,16 @@ def train_model(config):
     for epoch in range(1, config['training']['epochs'] + 1):
         model.train()
         total_loss = 0
-        for batch in train_loader:
+        total_loss_model = 0
+        total_loss_guide = 0
+
+        for batch_idx, batch in enumerate(train_loader, 1):
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
             user_ids = user_ids.to(device)
 
-            if model_name == 'SASRecLLM':
+            if model_name in ['SASRecLLM', 'BERT4RecLLM']:
                 # Получаем эмбеддинги профиля пользователя, если они существуют
                 if user_profile_embeddings is not None:
                     user_profile_emb = user_profile_embeddings[user_ids]
@@ -113,42 +134,70 @@ def train_model(config):
                 logits = outputs.view(-1, outputs.size(-1))
                 targets = target_seq.view(-1)
 
+                # Проверка на NaN и Inf в логитах
+                # if torch.isnan(logits).any() or torch.isinf(logits).any():
+                #     print(f"NaN or Inf detected in logits at epoch {epoch}, batch {batch_idx}")
+                #     continue  # Пропустить этот батч или обработать по-другому
+
                 loss_model = criterion(logits, targets)
 
                 if reconstructed_profile is not None:
                     loss_guide = nn.MSELoss()(reconstructed_profile, user_profile_emb)
+                    #cosine_loss = nn.CosineEmbeddingLoss()
+                    #target = torch.ones(user_profile_emb.size(0)).to(device)
+                    #loss_guide = cosine_loss(reconstructed_profile, user_profile_emb, target)
+
                     if epoch < fine_tune_epoch:
                         loss = alpha * loss_guide + (1 - alpha) * loss_model
                     else:
                         loss = loss_model
                 else:
                     loss = loss_model
+                    loss_guide = torch.tensor(0.0, device=device)  # Для логирования
+
             else:
-                # Для SASRec получаем только outputs
-                outputs = model(input_seq)
-
-                # Проверяем, если outputs является кортежем (на всякий случай)
-                if isinstance(outputs, tuple):
-                    outputs = outputs[0]
-
+                # Для SASRec или BERT4Rec получаем только outputs
+                outputs, _ = model(input_seq)
                 logits = outputs.view(-1, outputs.size(-1))
                 targets = target_seq.view(-1)
 
+                # Проверка на NaN и Inf в логитах
+                # if torch.isnan(logits).any() or torch.isinf(logits).any():
+                #     print(f"NaN or Inf detected in logits at epoch {epoch}, batch {batch_idx}")
+                #     continue  # Пропустить этот батч или обработать по-другому
+
                 loss = criterion(logits, targets)
+                loss_model = loss
+                loss_guide = torch.tensor(0.0, device=device)  # Для логирования
 
             # Шаги оптимизации
             optimizer.zero_grad()
             loss.backward()
+
+            # Проверка градиентов на NaN и Inf
+            # for name, param in model.named_parameters():
+            #     if param.grad is not None:
+            #         if torch.isnan(param.grad).any() or torch.isinf(param.grad).any():
+            #             print(f"NaN or Inf detected in gradients of {name}")
+
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
             optimizer.step()
 
             total_loss += loss.item()
+            total_loss_model += loss_model.item()
+            total_loss_guide += loss_guide.item()
 
         avg_loss = total_loss / len(train_loader)
-        print(f"Epoch {epoch}/{config['training']['epochs']}, Loss: {avg_loss:.4f}")
+        avg_loss_model = total_loss_model / len(train_loader)
+        avg_loss_guide = total_loss_guide / len(train_loader)
+
+        print(f"Epoch {epoch}/{config['training']['epochs']}, Loss: {avg_loss:.4f}, "
+              f"Loss_Model: {avg_loss_model:.4f}, Loss_Guide: {avg_loss_guide:.4f}")
 
         # Логирование метрик в MLflow
         mlflow.log_metric('train_loss', avg_loss, step=epoch)
+        mlflow.log_metric('train_loss_model', avg_loss_model, step=epoch)
+        mlflow.log_metric('train_loss_guide', avg_loss_guide, step=epoch)
 
         # Оценка на валидационном наборе
         if epoch % config['training']['eval_every'] == 0:
@@ -199,6 +248,27 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             initializer_range=config['model'].get('initializer_range', 0.02),
             add_head=config['model'].get('add_head', True)
         ).to(device)
+    elif model_name == 'BERT4Rec':
+        model = BERT4Rec(
+            item_num=config['model']['item_num'],
+            maxlen=config['model']['maxlen'],
+            hidden_units=config['model']['hidden_units'],
+            num_heads=config['model']['num_heads'],
+            num_layers=config['model']['num_blocks'],  # Используем num_blocks как num_layers
+            dropout_rate=config['model']['dropout_rate']
+        ).to(device)
+    elif model_name == 'BERT4RecLLM':
+        model = BERT4RecLLM(
+            item_num=config['model']['item_num'],
+            maxlen=config['model']['maxlen'],
+            hidden_units=config['model']['hidden_units'],
+            num_heads=config['model']['num_heads'],
+            num_layers=config['model']['num_blocks'],  # Используем num_blocks как num_layers
+            dropout_rate=config['model']['dropout_rate'],
+            user_emb_dim=profile_emb_dim,
+            reconstruction_layer=config['model'].get('reconstruction_layer', -1),
+            add_head=config['model'].get('add_head', True)
+        ).to(device)
     else:
         raise ValueError(f"Unknown model name: {model_name}")
     return model
@@ -212,5 +282,15 @@ if __name__ == '__main__':
 
     with open(args.config, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
+
+    # # Проверка типов конфигурации
+    # print("Configuration Types:")
+    # for key, value in config.items():
+    #     print(f"{key}: {type(value)}")
+    #     if isinstance(value, dict):
+    #         for subkey, subvalue in value.items():
+    #             print(f"  {subkey}: {type(subvalue)}")
+
+    validate_config(config)
 
     train_model(config)

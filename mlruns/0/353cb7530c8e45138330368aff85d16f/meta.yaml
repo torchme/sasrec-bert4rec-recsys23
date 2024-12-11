@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/redpo/Desktop/ITMO/ITMO%20RESEARCH/sasrec-bert4rec-recsys23/mlruns/0/353cb7530c8e45138330368aff85d16f/artifacts
+end_time: 1733955020573
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 353cb7530c8e45138330368aff85d16f
+run_name: BERT4Rec Experiment
+run_uuid: 353cb7530c8e45138330368aff85d16f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1733955012034
+status: 3
+tags: []
+user_id: redpo

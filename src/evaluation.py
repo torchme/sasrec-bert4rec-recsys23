@@ -65,7 +65,10 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
                 ranks = torch.where(correct)[1] + 1  # +1 для перехода от индекса к рангу
 
                 # Если целевой элемент найден в топ-K, рассчитываем NDCG, иначе 0
-                ndcg_k = (1 / torch.log2(ranks.float() + 1)).mean().item() if ranks.numel() > 0 else 0.0
+                if ranks.numel() > 0:
+                    ndcg_k = (1 / torch.log2(ranks.float() + 1)).mean().item()
+                else:
+                    ndcg_k = 0.0  # Обрабатываем случай с пустыми рангами
 
                 # Добавляем метрики для текущего k
                 recalls[k].append(recall_k)
