@@ -7,6 +7,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+
+from src.models.bert4rec import BERT4Rec
+from src.models.bert4recllm import BERT4RecLLM
 from src.models.sasrec import SASRec
 from src.models.sasrecllm import SASRecLLM
 from src.utils import set_seed, load_user_profile_embeddings, init_criterion_reconstruct
@@ -47,7 +50,7 @@ def train_model(config):
     # Получение имени модели из конфигурации
     model_name = config['model']['model_name']
 
-    if model_name == 'SASRecLLM':
+    if model_name in ['SASRecLLM', 'BERT4RecLLM']:
         user_profile_embeddings, null_profile_binary_mask = load_user_profile_embeddings(
             config['data']['user_profile_embeddings_path'],
             user_id_mapping
@@ -112,7 +115,7 @@ def train_model(config):
             target_seq = target_seq.to(device)
             user_ids = user_ids.to(device)
 
-            if model_name == 'SASRecLLM':
+            if model_name in ['SASRecLLM', 'BERT4RecLLM']:
                 # Получаем эмбеддинги профиля пользователя, если они существуют
                 if user_profile_embeddings is not None:
                     user_profile_emb = user_profile_embeddings[user_ids]
@@ -232,6 +235,31 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             num_heads=config['model']['num_heads'],
             dropout_rate=config['model']['dropout_rate'],
             initializer_range=config['model'].get('initializer_range', 0.02),
+            add_head=config['model'].get('add_head', True)
+        ).to(device)
+    elif model_name == 'BERT4Rec':
+        model = BERT4Rec(
+            item_num=config['model']['item_num'],
+            maxlen=config['model']['maxlen'],
+            hidden_units=config['model']['hidden_units'],
+            num_heads=config['model']['num_heads'],
+            num_layers=config['model']['num_blocks'],  # Используем num_blocks как num_layers
+            dropout_rate=config['model']['dropout_rate']
+        ).to(device)
+    elif model_name == 'BERT4RecLLM':
+        model = BERT4RecLLM(
+            profile_emb_dim=profile_emb_dim,
+            weighting_scheme=config['model']['weighting_scheme'] if 'weighting_scheme' in config['model'] else 'mean',
+            weight_scale=config['model']['weight_scale'] if 'weight_scale' in config['model'] else None,
+            use_down_scale=config['model']['use_down_scale'] if 'use_down_scale' in config['model'] else True,
+            use_upscale=config['model']['use_upscale'] if 'use_upscale' in config['model'] else False,
+            item_num=config['model']['item_num'],
+            maxlen=config['model']['maxlen'],
+            hidden_units=config['model']['hidden_units'],
+            num_heads=config['model']['num_heads'],
+            num_layers=config['model']['num_blocks'],  # Используем num_blocks как num_layers
+            dropout_rate=config['model']['dropout_rate'],
+            reconstruction_layer=config['model'].get('reconstruction_layer', -1),
             add_head=config['model'].get('add_head', True)
         ).to(device)
     else:

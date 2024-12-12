@@ -1,0 +1,34 @@
+
+seed: 42
+
+model:
+  model_name: BERT4Rec
+  item_num: 0  # Значение будет обновлено в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 128
+  num_heads: 4
+  num_blocks: 2
+  dropout_rate: 0.2
+  initializer_range: 0.02
+  add_head: True
+
+training:
+  batch_size: 256
+  epochs: 50
+  learning_rate: 0.001
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.5  # Параметр для комбинированной функции потерь (не используется для BERT4Rec)
+  fine_tune_epoch: 25  # Эпоха, после которой начинаем тонкую настройку (не используется для BERT4Rec)
+
+data:
+  train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/counts.pkl
+  user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty.json  # Путь к эмбеддингам профилей пользователей
+
+
+experiment_name: "BERT4Rec Experiment"
