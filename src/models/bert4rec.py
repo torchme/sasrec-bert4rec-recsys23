@@ -32,6 +32,7 @@ class BERT4Rec(nn.Module):
         if self.add_head:
             # Предсказание товаров
             self.out = nn.Linear(hidden_units, item_num + 1)
+        self.hidden_units = hidden_units
 
         # Инициализация весов
         self.apply(self._init_weights)
