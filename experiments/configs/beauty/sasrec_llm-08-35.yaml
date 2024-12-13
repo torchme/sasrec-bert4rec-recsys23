@@ -1,0 +1,33 @@
+seed: 42
+
+model:
+  model_name: SASRecLLM
+  item_num: 0  # Будет обновлено в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 128
+  num_blocks: 2
+  num_heads: 2
+  dropout_rate: 0.2
+  initializer_range: 0.02
+  add_head: True
+  reconstruction_layer: -1  # Используем последний слой для реконструкции
+
+training:
+  batch_size: 256
+  epochs: 50
+  learning_rate: 0.0001
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.8  # Параметр для комбинированной функции потерь
+  fine_tune_epoch: 35  # Эпоха, после которой начинаем тонкую настройку
+
+data:
+  train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/counts.pkl
+  user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty.json  # Путь к эмбеддингам профилей пользователей
+
+experiment_name: "SASRecLLM Beauty Experiment"

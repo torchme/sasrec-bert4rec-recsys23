@@ -4,3 +4,6 @@
 *.inter
 *.pt
 __pycache__
+mlruns/
+.idea/
+notebooks/

@@ -11,16 +11,16 @@ model:
   dropout_rate: 0.2
   initializer_range: 0.02
   add_head: True
-  reconstruction_layer: -1  # Используем последний слой для реконструкции
+  reconstruction_layer: 1  # Используем последний слой для реконструкции
 
 training:
   batch_size: 256
-  epochs: 50
+  epochs: 10
   learning_rate: 0.0001
   eval_every: 1
   model_dir: models/
-  alpha: 0.5  # Параметр для комбинированной функции потерь
-  fine_tune_epoch: 25  # Эпоха, после которой начинаем тонкую настройку
+  alpha: 0.8  # Параметр для комбинированной функции потерь
+  fine_tune_epoch: 5  # Эпоха, после которой начинаем тонкую настройку
 
 data:
   train_sequences: data/processed/train_sequences.pkl
@@ -28,6 +28,6 @@ data:
   test_sequences: data/processed/test_sequences.pkl
   mappings: data/processed/mappings.pkl
   counts: data/processed/counts.pkl
-  user_profile_embeddings_path: data/emb/embeddings.json  # Путь к эмбеддингам профилей пользователей
+  user_profile_embeddings_path: data/emb/embedding_kion.json  # Путь к эмбеддингам профилей пользователей
 
 experiment_name: "SASRecLLM Experiment"

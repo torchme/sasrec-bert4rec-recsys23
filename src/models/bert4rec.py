@@ -1,18 +1,18 @@
-# src/models/bert4rec.py
-
 import torch
 import torch.nn as nn
 from transformers import BertConfig, BertModel
 
+
 class BERT4Rec(nn.Module):
     """Классическая реализация модели BERT4Rec."""
-    
-    def __init__(self, item_num, maxlen, hidden_units, num_heads, num_layers, dropout_rate):
+
+    def __init__(self, item_num, maxlen, hidden_units, num_heads, num_layers, dropout_rate, add_head=True):
         super(BERT4Rec, self).__init__()
-        
+
         self.item_num = item_num
         self.maxlen = maxlen
-        
+        self.add_head = add_head
+
         # Конфигурация BERT
         bert_config = BertConfig(
             vocab_size=item_num + 1,
@@ -26,17 +26,18 @@ class BERT4Rec(nn.Module):
             type_vocab_size=1,
             pad_token_id=0
         )
-        
+
         self.bert = BertModel(bert_config)
-        
-        # Предсказание товаров
-        self.out = nn.Linear(hidden_units, item_num + 1)
-        
+
+        if self.add_head:
+            # Предсказание товаров
+            self.out = nn.Linear(hidden_units, item_num + 1)
+        self.hidden_units = hidden_units
+
         # Инициализация весов
         self.apply(self._init_weights)
-        
+
     def _init_weights(self, module):
-        """Инициализация весов."""
         if isinstance(module, (nn.Linear, nn.Embedding)):
             module.weight.data.normal_(mean=0.0, std=self.bert.config.initializer_range)
             if isinstance(module, nn.Embedding):
@@ -44,18 +45,23 @@ class BERT4Rec(nn.Module):
                     module.weight.data[module.padding_idx].zero_()
         if isinstance(module, nn.Linear) and module.bias is not None:
             module.bias.data.zero_()
-    
+
     def forward(self, input_seq, user_profile_emb=None):
         """
         input_seq: Tensor с индексами товаров [batch_size, seq_len]
         user_profile_emb: Не используется в классической модели BERT4Rec
         """
         attention_mask = (input_seq != 0).long()  # [batch_size, seq_len]
-        
+
         # Получаем выходы из BERT
         outputs = self.bert(input_ids=input_seq, attention_mask=attention_mask)
         sequence_output = outputs.last_hidden_state  # [batch_size, seq_len, hidden_units]
-        
-        # Предсказание следующего товара
-        logits = self.out(sequence_output)  # [batch_size, seq_len, item_num + 1]
-        return logits
+
+        if self.add_head:
+            # Предсказание следующего товара
+            logits = self.out(sequence_output)  # [batch_size, seq_len, item_num + 1]
+        else:
+            logits = sequence_output  # [batch_size, seq_len, hidden_units]
+
+        # Возвращаем формат: (outputs, reconstructed_profile)
+        return logits, None

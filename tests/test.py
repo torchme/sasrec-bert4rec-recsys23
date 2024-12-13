@@ -1,25 +1,11 @@
-from dataset_preprocessing import *
+from src.data_processing import load_settings_from_file, load_raw_dataset, load_inter_files_dataset
 
-data_dir = 'kion-ru'
-kion_ru_settings = DatasetSettings(data_dir,
-                                   ["item_id", "content_type", "title", "title_orig", "release_year", "genres", "countries", "for_kids", "age_rating", "studios", "directors", "actors", "description", "keywords"],
-                                   ["user_id", "age", "income", "sex", "kids_flg"],
-                                   ["user_id", "item_id", "last_watch_dt", "total_dur", "watched_pct"],
-                                   "items.csv", "users.csv", "interactions.csv",
-                                   ",")
-dataset_loader = DatasetLoaderML(kion_ru_settings)
 
-dataset_loader.load_users()
-dataset_loader.load_movies()
-dataset_loader.load_ratings()
+# print(load_settings_from_file("../data/raw/kion/setting.txt"))
+# load_raw_dataset("../data/raw/kion/setting.txt", "../data/processed/kion/")
 
-train_ratings, val_ratings, test_ratings = dataset_loader.split_ratings(["962099", "656683"], [0.8, 0.1, 0.1])
-print(train_ratings, '\n', val_ratings, '\n', test_ratings)
+# print(load_settings_from_file("../data/raw/kion_en/setting.txt"))
+load_raw_dataset("../data/raw/kion_en/setting.txt", "../data/processed/kion_en/")
 
-# negative_samples = dataset_loader.get_negative_samples(num_neg_samples=100)
-# print(negative_samples)
-
-train_loader = dataset_loader.get_pytorch_dataloader(train_ratings)
-print(train_loader)
-
-print(dataset_loader.session_split())
+# print(load_settings_from_file("../data/raw/amazon_beauty/setting.txt"))
+# load_raw_dataset("../data/raw/amazon_beauty/setting.txt", "../data/processed/amazon_beauty/")
