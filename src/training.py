@@ -85,7 +85,7 @@ def train_model(config):
     # Оптимизатор и функция потерь
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['training']['learning_rate'])
     criterion = nn.CrossEntropyLoss(ignore_index=0)  # Игнорируем паддинги
-    if model_name == 'SASRecLLM':
+    if model_name in ['SASRecLLM', 'BERT4RecLLM']:
         if 'reconstruct_loss' in config['training']:
             criterion_reconstruct_fn = init_criterion_reconstruct(config['training']['reconstruct_loss'])
         else:
