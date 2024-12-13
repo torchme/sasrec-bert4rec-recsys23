@@ -5,12 +5,17 @@ import pickle
 from datetime import datetime
 from sklearn.model_selection import StratifiedShuffleSplit
 
+from src.data_split_from_raw_file import DataFromRawFileGetter
+
+
 class DatasetSettings:
-    def __init__(self, data_dir, items_features, users_features, interactions_features, items_filename, users_filename,
+    def __init__(self, data_dir, one_datafile_name, split_into_files, items_features, users_features,
+                 interactions_features, items_filename, users_filename,
                  interactions_filename, separator, user_id='user_id', item_id='item_id', timestamp='timestamp',
                  interaction='rating', interaction_scale=(0, 1), encoding="utf-8", drop_title_row=True,
                  timestamp_format=None,
-                 stratify_users=False, stratify_user_column_names=("gender", "age")):
+                 stratify_users=False, stratify_user_column_names=("gender", "age"), users_only_from_file=None,
+                 users_from_file_id_column=None, items_only_from_file=None, items_from_file_id_column=None):
         """
         Класс для указания конфига (настроек) датасета для предобработки. Подходит для датасетов под задачи
         рекомендательных систем.
@@ -41,6 +46,8 @@ class DatasetSettings:
         """
 
         self.data_dir = data_dir
+        self.one_datafile_name = one_datafile_name
+        self.split_into_files = split_into_files
         self.items_features = items_features
         self.users_features = users_features
         self.interactions_features = interactions_features
@@ -53,44 +60,84 @@ class DatasetSettings:
         self.user_id = user_id
         self.item_id = item_id
         self.timestamp = timestamp
+        self.timestamp_format = timestamp_format
         self.interaction = interaction
         if self.item_id not in self.items_features or self.user_id not in self.users_features:
             raise ValueError(f"Invalid item_id or user_id in the dataset settings. "
                              f"item_id: {self.item_id}, user_id: {self.user_id}, "
                              f"items_features: {self.items_features}, users_features: {self.users_features}")
         if item_id not in self.interactions_features or user_id not in interactions_features or (self.timestamp not in
-            self.interactions_features):
+                                                                                                 self.interactions_features):
             raise ValueError(f"Invalid item_id or user_id or timestamp in the dataset settings. "
                              f"Not found in interaction features. "
                              f"item_id: {self.item_id}, user_id: {self.user_id}, timestamp: {self.timestamp}, "
                              f"interactions_features: {self.interactions_features}")
         self.interaction_scale = interaction_scale
-        self.timestamp_format = timestamp_format
         self.stratify_users = stratify_users
         self.stratify_user_column_names = stratify_user_column_names
+        self.users_only_from_file = users_only_from_file
+        self.users_from_file_id_column = users_from_file_id_column
+        self.items_only_from_file = items_only_from_file
+        self.items_from_file_id_column = items_from_file_id_column
 
     def __str__(self):
-        return (f"{self.data_dir}"
-            f"{self.items_features}"
-            f"{self.users_features}"
-            f"{self.interactions_features}"
-            f"{self.items_filename}"
-            f"{self.users_filename}"
-            f"{self.interactions_filename}"
-            f"{self.separator}"
-            f"{self.encoding}"
-            f"{self.drop_title_row}"
-            f"{self.user_id}"
-            f"{self.item_id}"
-            f"{self.timestamp}"
-            f"{self.interaction}"
-            f"{self.interaction_scale}"
-            f"{self.timestamp_format}"
-            f"{self.stratify_users}"
-            f"{self.stratify_user_column_names}")
+        return (f"self.data_dir {self.data_dir},\n"
+                f"self.split_into_files {self.split_into_files},\n"
+                f"self.one_datafile_name {self.one_datafile_name},\n"
+                f"self.items_features {self.items_features},\n"
+                f"self.users_features {self.users_features},\n"
+                f"self.interactions_features {self.interactions_features},\n"
+                f"self.items_filename {self.items_filename},\n"
+                f"self.users_filename {self.users_filename},\n"
+                f"self.interactions_filename {self.interactions_filename},\n"
+                f"self.separator {self.separator},\n"
+                f"self.encoding {self.encoding},\n"
+                f"self.drop_title_row {self.drop_title_row},\n"
+                f"self.user_id {self.user_id},\n"
+                f"self.item_id {self.item_id},\n"
+                f"self.timestamp {self.timestamp},\n"
+                f"self.interaction {self.interaction},\n"
+                f"self.interaction_scale {self.interaction_scale},\n"
+                f"self.timestamp_format {self.timestamp_format},\n"
+                f"self.stratify_users {self.stratify_users},\n"
+                f"self.stratify_user_column_names {self.stratify_user_column_names},\n"
+                f"self.users_only_from_file {self.users_only_from_file},\n"
+                f"self.users_from_file_id_column {self.users_from_file_id_column},\n"
+                f"self.items_only_from_file {self.items_only_from_file},\n"
+                f"self.items_from_file_id_column {self.items_from_file_id_column}")
 
 
 class DatasetLoaderML:
+    """
+    Класс для загрузки, обработки и сохранения данных о взаимодействиях пользователей с элементами (items)
+    в контексте рекомендательных систем.
+
+    Атрибуты:
+        data_dir (str): Путь к директории с данными.
+        items_features (list): Список названий колонок с данными о документах (items).
+        users_features (list): Список названий колонок с данными о пользователях.
+        interactions_features (list): Список названий колонок с данными о взаимодействиях.
+        items_filename (str): Имя файла с данными о товарах.
+        users_filename (str): Имя файла с данными о пользователях.
+        interactions_filename (str): Имя файла с данными о взаимодействиях.
+        separator (str): Разделитель, используемый в файлах данных.
+        encoding (str): Кодировка файлов данных.
+        drop_title_row (bool): Флаг для удаления строки с заголовками.
+        users (pd.DataFrame): Данные о пользователях.
+        items (pd.DataFrame): Данные о товарах.
+        ratings (pd.DataFrame): Данные о взаимодействиях.
+        user_id_column (str): Название колонки с ID пользователей.
+        item_id_column (str): Название колонки с ID товаров.
+        timestamp_column (str): Название колонки с временными метками.
+        timestamp_format (str): Формат колонки со временем (None если numerical timestamp, иначе - формат).
+        interaction_column (str): Название колонки с данными о взаимодействиях.
+        interaction_scale (str): Range значений взаимодействий: от-до (включительно).
+        stratify_users (bool): Флаг для стратифицированного разбиения данных пользователей.
+        stratify_user_column_names (list): Колонки, используемые для стратификации пользователей.
+
+        (остальные настройки не загружаются)
+    """
+
     def __init__(self, setting: DatasetSettings):
         self.data_dir = setting.data_dir
         self.items_features = setting.items_features
@@ -116,6 +163,15 @@ class DatasetLoaderML:
 
     # Загрузка сырых данных
     def load_users(self, print_on_success=True):
+        """
+        Загружает данные о пользователях из файла.
+
+        Args:
+            print_on_success (bool): Если True, выводит сообщение об успешной загрузке данных.
+
+        Возвращает:
+            None
+        """
         user_columns = self.users_features
         user_path = os.path.join(self.data_dir, self.users_filename)
         self.users = pd.read_csv(user_path, sep=self.separator, engine='python', names=user_columns)
@@ -125,15 +181,36 @@ class DatasetLoaderML:
             print(f'Users data loaded: {self.users.shape[0]} records')
 
     def load_documents(self, print_on_success=True):
+        """
+        Загружает данные о товарах из файла.
+
+        Args:
+            print_on_success (bool): Если True, выводит сообщение об успешной загрузке данных.
+
+        Возвращает:
+            None
+        """
         movie_columns = self.items_features
         movie_path = os.path.join(self.data_dir, self.items_filename)
-        self.items = pd.read_csv(movie_path, sep=self.separator, engine='python', names=movie_columns, encoding=self.encoding)
+        self.items = pd.read_csv(movie_path, sep=self.separator, engine='python', names=movie_columns,
+                                 encoding=self.encoding)
         if self.drop_title_row:
             self.items = self.items.iloc[1:]
         if print_on_success:
-            print(f'Movies data loaded: {self.items.shape[0]} records')
+            print(f'Items data loaded: {self.items.shape[0]} records')
 
-    def load_ratings(self, filter_user_actions_count=3, print_on_success=True):
+    def load_ratings(self, filter_user_actions_count=3, filter_item_actions_count=3, print_on_success=True):
+        """
+        Загружает данные о взаимодействиях из файла и применяет фильтры.
+
+        Args:
+            filter_user_actions_count (int): Минимальное количество взаимодействий пользователя для фильтрации.
+            filter_item_actions_count (int): Минимальное количество взаимодействий товара для фильтрации.
+            print_on_success (bool): Если True, выводит сообщение об успешной загрузке данных.
+
+        Возвращает:
+            None
+        """
         ratings_columns = self.interactions_features
         ratings_path = os.path.join(self.data_dir, self.interactions_filename)
         self.ratings = pd.read_csv(ratings_path, sep=self.separator, engine='python', names=ratings_columns)
@@ -141,33 +218,72 @@ class DatasetLoaderML:
             self.ratings = self.ratings.iloc[1:]
         if self.timestamp_format is not None:
             self.ratings[self.timestamp_column] = pd.to_datetime(self.ratings[self.timestamp_column],
-                                                                 errors='coerce').astype("int64") // 10**9
+                                                                 errors='coerce').astype("int64") // 10 ** 9
         if print_on_success:
             print(f'Interactions data loaded: {self.ratings.shape[0]} records before filtering rules')
-        self.filter_ratings_by_interaction_threshold(filter_user_actions_count)
+        self.filter_ratings_by_interaction_threshold(filter_user_actions_count, filter_item_actions_count)
 
-    def load_altogether(self, filter_user_actions_count=3, print_on_success=True):
+    def load_altogether(self, filter_user_actions_count=3, filter_item_actions_count=3, print_on_success=True):
+        """
+        Загружает данные о пользователях, товарах и взаимодействиях одним вызовом.
+
+        Args:
+            filter_user_actions_count (int): Минимальное количество взаимодействий пользователя для фильтрации.
+            filter_item_actions_count (int): Минимальное количество взаимодействий товара для фильтрации.
+            print_on_success (bool): Если True, выводит сообщения об успешной загрузке данных.
+
+        Возвращает:
+            None
+        """
         self.load_users(print_on_success)
         self.load_documents(print_on_success)
-        self.load_ratings(filter_user_actions_count, print_on_success)
+        self.load_ratings(filter_user_actions_count, filter_item_actions_count, print_on_success)
 
-    def filter_ratings_by_interaction_threshold(self, threshold, print_on_success=True):
-        user_interactions = self.ratings[self.user_id_column].value_counts()
-        filtered_users = user_interactions[user_interactions > threshold].index
-        self.users = self.users[self.users[self.user_id_column].isin(filtered_users)]
-        item_interactions = self.ratings[self.item_id_column].value_counts()
-        filtered_items = item_interactions[item_interactions > 3].index
-        self.items = self.items[self.items[self.item_id_column].isin(filtered_items)]
-        self.ratings = self.ratings[self.ratings[self.user_id_column].isin(self.users[self.user_id_column])]
-        self.ratings = self.ratings[self.ratings[self.item_id_column].isin(self.items[self.item_id_column])]
+    def filter_ratings_by_interaction_threshold(self, threshold_users, threshold_items, print_on_success=True):
+        """
+        Применяет фильтрацию данных о взаимодействиях по пороговым значениям.
 
-        if print_on_success:
-            print(f'Users left after applying threshold of {threshold}: {len(self.users)}')
-            print(f'Items left after applying threshold of {3}: {len(self.items)}')
-            print(f'Interactions left after applying threshold of {threshold} actions per user: {len(self.ratings)}')
+        Args:
+            threshold_users (int): Минимальное количество взаимодействий пользователя для фильтрации.
+            threshold_items (int): Минимальное количество взаимодействий товара для фильтрации.
+            print_on_success (bool): Если True, выводит сообщение об успешной фильтрации данных.
+
+        Возвращает:
+            None
+        """
+        if threshold_items is not None and threshold_users is not None:
+            user_interactions = self.ratings[self.user_id_column].value_counts()
+            filtered_users = user_interactions[user_interactions > threshold_users].index
+            self.users = self.users[self.users[self.user_id_column].isin(filtered_users)]
+            item_interactions = self.ratings[self.item_id_column].value_counts()
+            filtered_items = item_interactions[item_interactions > threshold_items].index
+            self.items = self.items[self.items[self.item_id_column].isin(filtered_items)]
+            self.ratings = self.ratings[self.ratings[self.user_id_column].isin(self.users[self.user_id_column])]
+            self.ratings = self.ratings[self.ratings[self.item_id_column].isin(self.items[self.item_id_column])]
+
+            if print_on_success:
+                print(f'Users left after applying threshold_users of {threshold_users}: {len(self.users)}')
+                print(f'Items left after applying threshold_items of {threshold_items}: {len(self.items)}')
+                print(f'Interactions left after applying threshold_users '
+                      f'of {threshold_users} actions per user and {threshold_items} '
+                      f'actions per item: {len(self.ratings)}')
 
     # Сохранение данных в формат .inter
     def save_inter_files(self, train, validation, test, path_to_save, save_validation=True):
+        """
+        Сохраняет данные о взаимодействиях в формате `.inter`.
+
+        Args:
+            train (pd.DataFrame): Данные для обучения.
+            validation (pd.DataFrame): Данные для валидации.
+            test (pd.DataFrame): Данные для тестирования.
+            path_to_save (str): Путь для сохранения файлов.
+            save_validation (bool): Если True, сохраняет файл с валидацией.
+
+        Возвращает:
+            None
+        """
+
         def preprocess_to_inter(df):
             df_copy = df.copy()
 
@@ -177,10 +293,11 @@ class DatasetLoaderML:
             df_copy[f'{self.interaction_column}:float'] = df_copy[self.interaction_column].astype(float)
             df_copy[f'{self.timestamp_column}:float'] = df_copy[self.timestamp_column].astype(float)
             df_copy.drop(columns=[f'{self.user_id_column}', f'{self.item_id_column}',
-                             f'{self.interaction_column}', f'{self.timestamp_column}'],
-                    inplace=True)
+                                  f'{self.interaction_column}', f'{self.timestamp_column}'],
+                         inplace=True)
 
             return df_copy
+
         files_pool = []
         for dataframe in ([train, validation, test] if save_validation else [train, test]):
             files_pool.append(preprocess_to_inter(dataframe))
@@ -191,14 +308,32 @@ class DatasetLoaderML:
 
     # Загрузка данных из .inter файлов
     def load_inter_data(self):
+        """
+        Загружает данные из файлов `.inter`.
+
+        Returns:
+            tuple: Кортеж с данными train, validation и test.
+        """
         train = pd.read_csv(os.path.join(self.data_dir, 'train.inter'), sep='\t')
         valid = pd.read_csv(os.path.join(self.data_dir, 'valid.inter'), sep='\t')
         test = pd.read_csv(os.path.join(self.data_dir, 'test.inter'), sep='\t')
         return train, valid, test
 
-    # Основной метод разбиения на train/test/validation
     def session_split(self, boundary=0.8, validation_size=0.2,
                       path_to_save=None, save_intermediate=True):
+        """
+        Разбивает данные на train, validation и test подходом, рекомендованным в статье "Does it look sequential?".
+        Разбиение проводится относительно
+
+        Args:
+            boundary (float): Доля данных для обучения (train).
+            validation_size (float): Доля данных для валидации (validation).
+            path_to_save (str): Путь для сохранения промежуточных файлов.
+            save_intermediate (bool): Если True, сохраняет промежуточные файлы.
+
+        Returns:
+            tuple: Кортеж с DataFrames для train, validation и test.
+        """
         data = self.ratings
         if self.timestamp_format is not None:
             data = data[pd.to_datetime(data[self.timestamp_column], errors='coerce').notna()]
@@ -219,11 +354,15 @@ class DatasetLoaderML:
 
     def make_validation(self, train, test, validation_size):
         """
-        Разбивает данные на train, validation
-        :param train: DataFrame с данными для train
-        :param test: DataFrame с данными для test
-        :param validation_size: размер validation-датасета в виде доли единицы
-        :return: train, validation, test DataFrames
+        Разбивает данные на train и validation.
+
+        Args:
+            train (pd.DataFrame): Данные для обучения.
+            test (pd.DataFrame): Данные для тестирования.
+            validation_size (float): Доля данных для валидации.
+
+        Returns:
+            tuple: Кортеж с DataFrames для train, validation и test.
         """
         if validation_size <= 0 or validation_size >= 1:
             raise ValueError("Validation size should be between 0 and 1 (exclusive).")
@@ -324,12 +463,10 @@ class DatasetLoaderML:
 
         return self.process_split_data(train, validation, test, print_on_success)
 
-
     def preprocess_data_from_raw_dataset(self, save_intermediate=True, path_to_save=None,
-                                         boundary=0.8, filter_user_actions_count=3, print_on_success=True):
-        # TODO: пробросить параметр для фильтрации пользователей до первой из функций по порядку запуска
-        # TODO: создать параметр трешхолда для фильтрации items по кол-ву вз-ий до первой из функций по порядку запуска
-        self.load_altogether(filter_user_actions_count, print_on_success)
+                                         boundary=0.8, filter_user_actions_count=3, filter_item_actions_count=3,
+                                         print_on_success=True):
+        self.load_altogether(filter_user_actions_count, filter_item_actions_count, print_on_success)
         train, validation, test = self.session_split(boundary=boundary, save_intermediate=save_intermediate,
                                                      path_to_save=path_to_save)
         return self.process_split_data(train, validation, test, print_on_success)
@@ -344,8 +481,20 @@ class DatasetLoaderML:
 
 
 def load_settings_from_file(settings_filepath):
+    """
+    Загружает настройки из указанного файла.
+
+    Args:
+        settings_filepath (str): Путь к файлу с настройками.
+
+    Returns:
+        DatasetSettings: Настройки в виде экземпляра класса DatasetSettings.
+    """
     with open(settings_filepath, 'r') as f:
         data_dir = f.readline().strip()
+        split_into_files = f.readline().strip().lower() == "true"
+        one_datafile_name = f.readline().strip()
+        one_datafile_name = None if one_datafile_name.lower() == "none" else one_datafile_name
         items_features = f.readline().strip().split(', ')
         users_features = f.readline().strip().split(', ')
         interactions_features = f.readline().strip().split(', ')
@@ -358,13 +507,23 @@ def load_settings_from_file(settings_filepath):
         item_id = f.readline().strip()
         user_id = f.readline().strip()
         timestamp = f.readline().strip()
-        interaction = f.readline().strip()
-        interaction_scale = tuple(map(float, f.readline().strip().split(', ')))
         timestamp_format = f.readline().strip()
         timestamp_format = None if timestamp_format.lower() == "none" else timestamp_format
+        interaction = f.readline().strip()
+        interaction_scale = tuple(map(float, f.readline().strip().split(', ')))
         stratify_users = f.readline().strip().lower() == "true"
         stratify_user_column_names = f.readline().strip()
+        users_only_from_file = f.readline().strip()
+        users_only_from_file = None if users_only_from_file.lower() == "none" else users_only_from_file
+        users_from_file_id_column = f.readline().strip()
+        users_from_file_id_column = None if users_from_file_id_column.lower() == "none" else users_from_file_id_column
+        items_only_from_file = f.readline().strip()
+        items_only_from_file = None if items_only_from_file.lower() == "none" else items_only_from_file
+        items_from_file_id_column = f.readline().strip()
+        items_from_file_id_column = None if items_from_file_id_column.lower() == "none" else items_from_file_id_column
         return DatasetSettings(data_dir=data_dir,
+                               split_into_files=split_into_files,
+                               one_datafile_name=one_datafile_name,
                                items_features=items_features,
                                users_features=users_features,
                                interactions_features=interactions_features,
@@ -377,21 +536,41 @@ def load_settings_from_file(settings_filepath):
                                item_id=item_id,
                                user_id=user_id,
                                timestamp=timestamp,
+                               timestamp_format=timestamp_format,
                                interaction=interaction,
                                interaction_scale=interaction_scale,
-                               timestamp_format=timestamp_format,
                                stratify_users=stratify_users,
-                               stratify_user_column_names=stratify_user_column_names
+                               stratify_user_column_names=stratify_user_column_names,
+                               users_only_from_file=users_only_from_file,
+                               users_from_file_id_column=users_from_file_id_column,
+                               items_only_from_file=items_only_from_file,
+                               items_from_file_id_column=items_from_file_id_column
                                )
 
 
-def _load_raw_dataset_and_save_as_pickle(settings, path_to_save, inter_path_to_save=None):
+def _load_raw_dataset_and_save_as_pickle(settings, path_to_save, filter_user_actions_count=None,
+                                         filter_item_actions_count=None, inter_path_to_save=None):
+    """
+    Загружает данные из сырых файлов данных (users, items, interactions без разделения)
+    и сохраняет их в память в виде pickle-файлов.
+
+    Args:
+        settings (DatasetSettings): Настройки загрузки и обработки данных.
+        path_to_save (str): Путь к директории, куда будут сохранены pickle-файлы.
+        filter_user_actions_count (int): Минимальное число взаимодействий пользователя для его сохранения.
+        filter_item_actions_count (int): Минимальное число взаимодействий товара для его сохранения.
+        inter_path_to_save (str): Путь к директории, куда будут сохранены промежуточные inter-файлы
+            (для последующей загрузки разделения из inter-файлов).
+    """
     loader = DatasetLoaderML(settings)
     save = inter_path_to_save is not None
-    (train_sequences,
-     valid_sequences,
-     test_sequences), mappings, counts = loader.preprocess_data_from_raw_dataset(save_intermediate=save,
-                                                                                 path_to_save=inter_path_to_save)
+    ((train_sequences,
+      valid_sequences,
+      test_sequences),
+     mappings, counts) = loader.preprocess_data_from_raw_dataset(save_intermediate=save,
+                                                                 path_to_save=inter_path_to_save,
+                                                                 filter_user_actions_count=filter_user_actions_count,
+                                                                 filter_item_actions_count=filter_item_actions_count)
     loader.save_processed_data(train_sequences, os.path.join(path_to_save, 'train_sequences.pkl'))
     loader.save_processed_data(valid_sequences, os.path.join(path_to_save, 'valid_sequences.pkl'))
     loader.save_processed_data(test_sequences, os.path.join(path_to_save, 'test_sequences.pkl'))
@@ -400,6 +579,13 @@ def _load_raw_dataset_and_save_as_pickle(settings, path_to_save, inter_path_to_s
 
 
 def _load_inter_files_dataset_and_save_as_pickle(settings, path_to_save):
+    """
+    Загружает данные из интерфайлов и сохраняет их в память в виде pickle-файлов.
+
+    Args:
+        settings (DatasetSettings): Настройки загрузки и обработки данных.
+        path_to_save (str): Путь для сохранения обработанных данных.
+    """
     loader = DatasetLoaderML(settings)
     (train_sequences,
      valid_sequences,
@@ -407,22 +593,95 @@ def _load_inter_files_dataset_and_save_as_pickle(settings, path_to_save):
     loader.save_processed_data(train_sequences, os.path.join(path_to_save, 'train_sequences.pkl'))
     loader.save_processed_data(valid_sequences, os.path.join(path_to_save, 'valid_sequences.pkl'))
     loader.save_processed_data(test_sequences, os.path.join(path_to_save, 'test_sequences.pkl'))
-    loader.save_processed_data(mappings, os.path.join(path_to_save,'mappings.pkl'))
+    loader.save_processed_data(mappings, os.path.join(path_to_save, 'mappings.pkl'))
     loader.save_processed_data(counts, os.path.join(path_to_save, 'counts.pkl'))
 
 
-def load_raw_dataset(settings_filepath, path_to_save, inter_path_to_save=None):
+def load_raw_dataset_with_settings_file(settings_filepath, path_to_save,
+                                        filter_user_actions_count_min=None,
+                                        filter_user_actions_count_max=None,
+                                        filter_item_actions_count_min=None,
+                                        filter_item_actions_count_max=None,
+                                        inter_path_to_save=None):
+    """
+    Загружает данные из файла настроек и загружает их в память. Подходит для запуска в случае, если настройки хранятся
+    в виде файла (в той же папке, где и данные).
+    Проводит разделение данных, если они находятся в одном файле, и фильтрует их по границам взаимодействий, чтобы
+    оставить только полезные сущности и уменьшить размер данных.
+
+    Args:
+        settings_filepath (str): название файла, в котором хранятся настройки датасета
+        path_to_save (str): путь куда сохранять данные
+        filter_user_actions_count_min (int, optional): минимальное число взаимодействий для пользователя.
+            None, если не требуется использовать данную границу
+        filter_user_actions_count_max (int, optional): максимальное число взаимодействий для пользователя.
+            None, если не требуется использовать данную границу
+        filter_item_actions_count_min (int, optional): минимальное число взаимодействий для предмета.
+            None, если не требуется использовать данную границу
+        filter_item_actions_count_max (int, optional): максимальное число взаимодействий для предмета.
+            None, если не требуется использовать данную границу
+        inter_path_to_save (str, optional): путь куда сохранять внутренние данные для повторного использования.
+    """
     settings = load_settings_from_file(settings_filepath)
+    raw_loader = DataFromRawFileGetter(settings)
+    raw_loader.load(True, filter_user_actions_count_min, filter_user_actions_count_max,
+                    filter_item_actions_count_min, filter_item_actions_count_max)
+    _load_raw_dataset_and_save_as_pickle(settings, path_to_save, inter_path_to_save=inter_path_to_save)
+
+
+def load_raw_dataset(settings, path_to_save,
+                     filter_user_actions_count_min=None,
+                     filter_user_actions_count_max=None,
+                     filter_item_actions_count_min=None,
+                     filter_item_actions_count_max=None,
+                     inter_path_to_save=None):
+    """
+    Загружает данные из уже загруженных в память настроек. Подходит для запуска сразу после ручного ввода настроек.
+    Проводит разделение данных, если они находятся в одном файле, и фильтрует их по границам взаимодействий, чтобы
+    оставить только полезные сущности и уменьшить размер данных.
+
+    Args:
+        settings (DatasetSettings): настройки датасета, уже в виде экземпляра класса
+        path_to_save (str): путь куда сохранять данные
+        filter_user_actions_count_min (int, optional): минимальное число взаимодействий для пользователя.
+            None, если не требуется использовать данную границу
+        filter_user_actions_count_max (int, optional): максимальное число взаимодействий для пользователя.
+            None, если не требуется использовать данную границу
+        filter_item_actions_count_min (int, optional): минимальное число взаимодействий для предмета.
+            None, если не требуется использовать данную границу
+        filter_item_actions_count_max (int, optional): максимальное число взаимодействий для предмета.
+            None, если не требуется использовать данную границу
+        inter_path_to_save (str, optional): путь куда сохранять внутренние данные для повторного использования.
+    """
+    raw_loader = DataFromRawFileGetter(settings)
+    raw_loader.load(True, filter_user_actions_count_min, filter_user_actions_count_max,
+                    filter_item_actions_count_min, filter_item_actions_count_max)
     _load_raw_dataset_and_save_as_pickle(settings, path_to_save, inter_path_to_save=inter_path_to_save)
 
 
 def load_inter_files_dataset(settings_filepath, path_to_save):
+    """
+    Загружает данные из .inter файлов. Использовалась в 1-м MVP загрузки данных для модели - с ручным разделением
+
+    Args:
+        settings_filepath (str): путь к файлу настроек
+        path_to_save (str): путь куда сохранять данные
+    """
     settings = load_settings_from_file(settings_filepath)
     _load_inter_files_dataset_and_save_as_pickle(settings, path_to_save)
 
 
 def old_load_dataset(path_to_save="../data/processed"):
+    """
+    Код загрузки данных для первого MVP - создаёт искусственные настройки датасета, в которых указаны только нужные
+    колонки и значения. Функция для воспроизведения загрузки данных, разделённых вручную
+
+    Args:
+        path_to_save (str): путь куда сохранять данные
+    """
     settings = DatasetSettings(data_dir="../data/raw",
+                               split_into_files=False,
+                               one_datafile_name=None,
                                items_features=['item_id'],
                                users_features=['user_id'],
                                interactions_features=['item_id', 'user_id', 'timestamp', 'rating'],
@@ -439,7 +698,11 @@ def old_load_dataset(path_to_save="../data/processed"):
                                interaction_scale=(1, 5),
                                timestamp_format=None,
                                stratify_users=False,
-                               stratify_user_column_names=[])
+                               stratify_user_column_names=[],
+                               users_only_from_file=None,
+                               users_from_file_id_column=None,
+                               items_only_from_file=None,
+                               items_from_file_id_column=None)
     _load_inter_files_dataset_and_save_as_pickle(settings, path_to_save)
 
 
