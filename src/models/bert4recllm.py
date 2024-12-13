@@ -67,19 +67,7 @@ class BERT4RecLLM(BERT4Rec):
             torch.Tensor or None: Скрытое состояние для реконструкции профиля [batch_size, hidden_units] или None.
         """
         attention_mask = (input_seq != 0).long()  # [batch_size, seq_len]
-
-        if user_profile_emb is not None:
-            # Преобразуем user_profile_emb
-            transformed_profile = self.profile_transform(user_profile_emb)  # [batch_size, hidden_units]
-            # Расширяем до [batch_size, seq_len, hidden_units]
-            transformed_profile = transformed_profile.unsqueeze(1).expand(-1, input_seq.size(1), -1)
-            # Получаем входные эмбеддинги и добавляем к ним трансформированный профиль
-            inputs_embeds = self.bert.embeddings(input_ids=input_seq) + transformed_profile
-            # Передаём эмбеддинги напрямую через inputs_embeds
-            outputs = self.bert(inputs_embeds=inputs_embeds, attention_mask=attention_mask, output_hidden_states=True)
-        else:
-            # Стандартный проход без добавления профиля
-            outputs = self.bert(input_ids=input_seq, attention_mask=attention_mask, output_hidden_states=True)
+        outputs = self.bert(input_ids=input_seq, attention_mask=attention_mask, output_hidden_states=True)
 
         sequence_output = outputs.last_hidden_state  # [batch_size, seq_len, hidden_units]
 
