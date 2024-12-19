@@ -8,7 +8,7 @@ from sklearn.decomposition import PCA
 
 def reduce_dim(params):
     def pca_reducer(mtrx, n_components):
-        pca = PCA(n_components=n_components)
+        pca = PCA(n_components=128)
         pca.fit(mtrx)
         reduced_emb = pca.transform(mtrx)
         return reduced_emb

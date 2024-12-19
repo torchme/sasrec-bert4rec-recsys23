@@ -10,5 +10,5 @@
 #SBATCH --constraint="type_a|type_b|type_c|type_d"
 
 # Executable
-chmod +x experiments/bash/reduce/reduce_128.sh
-srun experiments/bash/reduce/reduce_128.sh
+chmod +x experiments/bash/reduce/reduce_pca_128.sh
+srun experiments/bash/reduce/reduce_pca_128.sh
