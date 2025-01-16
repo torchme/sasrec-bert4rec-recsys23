@@ -1,0 +1,31 @@
+# experiments/configs/sasrec.yaml
+
+seed: 42  # Зерно на верхнем уровне
+
+model:
+  model_name: SASRec
+  item_num: 0  # Значения будут обновлены в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 128
+  num_blocks: 1
+  num_heads: 8
+  dropout_rate: 0.1
+  user_emb_dim:
+
+training:
+  batch_size: 256
+  epochs:
+  learning_rate: 0.0005
+  eval_every: 1
+  model_dir: models/
+
+data:
+  train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/rees46/processed/counts.pkl
+  user_embeddings_path: data/emb/embeddings.json  # Если используется модифицированная модель
+
+experiment_name: "SASRec Experiment"
