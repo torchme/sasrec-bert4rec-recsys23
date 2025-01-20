@@ -48,5 +48,5 @@ def init_criterion_reconstruct(criterion_name):
     if criterion_name == 'RMSE':
         return lambda x,y: torch.sqrt(nn.MSELoss()(x,y))
     if criterion_name == 'CosSim':
-        return lambda x,y: torch.mean(nn.CosineSimilarity(dim=1, eps=1e-6)(x,y))
+        return lambda x,y: 1 - torch.mean(nn.CosineSimilarity(dim=1, eps=1e-6)(x,y))
     raise Exception('Not existing reconstruction loss')

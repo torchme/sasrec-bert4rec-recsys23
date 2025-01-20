@@ -5,10 +5,10 @@ model:
   item_num: 0  # Будет обновлено в коде
   user_num: 0
   maxlen: 50
-  hidden_units: 128
+  hidden_units: 256
   num_blocks: 2
   num_heads: 2
-  dropout_rate: 0.2
+  dropout_rate: 0.3
   initializer_range: 0.02
   add_head: True
   reconstruction_layer:
@@ -19,8 +19,8 @@ model:
 
 training:
   batch_size: 256
-  epochs: 50
-  learning_rate: 0.0001
+  epochs: 24
+  learning_rate: 0.0005
   eval_every: 1
   model_dir: models/
   alpha:
