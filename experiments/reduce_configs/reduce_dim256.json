@@ -1,0 +1,14 @@
+{
+  "beauty_full": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty-256.json",
+    "n_components": 256,
+    "reducer": "UMAP"
+  },
+  "beauty_short": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_embedding_amazon_beauty.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_embedding_amazon_beauty-256.json",
+    "n_components": 256,
+    "reducer": "UMAP"
+  }
+}
