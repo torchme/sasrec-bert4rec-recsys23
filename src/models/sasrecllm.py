@@ -104,7 +104,7 @@ class SASRecLLM(SASRec):
         if self.reconstruction_layer == -1:
             reconstruction_input = self.weighting_fn(outputs, **self.weighting_kwargs)  # [batch_size, hidden_units]
         else:
-            reconstruction_input = self.weighting_fn(hidden_states[self.reconstruction_layer], **self.weighting_kwargs)  # [batch_size, hidden_units]
+            reconstruction_input = self.weighting_fn(hidden_states[self.reconstruction_layer % 2], **self.weighting_kwargs)  # [batch_size, hidden_units]
 
         # Применяем add_head после сохранения reconstruction_input
         if self.add_head:
