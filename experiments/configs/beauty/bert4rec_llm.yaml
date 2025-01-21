@@ -1,18 +1,17 @@
-
 seed: 42
 
 model:
-  model_name: BERT4Rec
+  model_name: BERT4RecLLM
   item_num: 0  # Значение будет обновлено в коде
   user_num: 0
   maxlen: 50
   hidden_units: 128
   num_heads: 4
-  num_blocks: 2
+  num_blocks: 2  # Используется как num_layers для BERT4Rec и BERT4RecLLM
   dropout_rate: 0.2
   initializer_range: 0.02
   add_head: True
-  reconstruction_layer: -1  # Используем последний слой для реконструкции
+  reconstruction_layer: -1  # Используется для выбора слоя для реконструкции профиля
   multi_profile: true       # Если true, то грузим несколько файлов профилей
   profile_aggregation: "attention"  # Можно "attention", "mean" и т.д.
 

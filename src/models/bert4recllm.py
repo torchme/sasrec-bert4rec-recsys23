@@ -7,23 +7,25 @@ from src.models.utils import mean_weightening, exponential_weightening, SimpleAt
 
 
 class BERT4RecLLM(BERT4Rec):
-    def __init__(self, profile_emb_dim, weighting_scheme: str, use_down_scale, use_upscale, weight_scale:float,
-                 item_num, maxlen, hidden_units, num_heads, num_layers, dropout_rate,
-                 reconstruction_layer=-1, add_head=True):
+    def __init__(
+        self,
+        profile_emb_dim,
+        weighting_scheme: str,
+        use_down_scale: bool,
+        use_upscale: bool,
+        weight_scale: float,
+        item_num,
+        maxlen,
+        hidden_units,
+        num_heads,
+        num_layers,
+        dropout_rate,
+        reconstruction_layer=-1,
+        add_head=True,
+        multi_profile=False  # <-- добавим флаг для много-профильного сценария
+    ):
         """
         BERT4Rec с поддержкой пользовательских эмбеддингов и реконструкции профиля (LLM часть).
-
-        Args:
-            item_num (int): Количество предметов.
-            maxlen (int): Максимальная длина последовательности.
-            hidden_units (int): Размер скрытого представления.
-            num_heads (int): Количество голов в Multi-Head Attention.
-            num_layers (int): Количество слоев трансформера.
-            dropout_rate (float): Доля дропаутов.
-            user_emb_dim (int): Размерность эмбеддингов профиля пользователя.
-            reconstruction_layer (int): Индекс слоя для получения скрытого состояния для реконструкции профиля.
-                                        -1 означает использовать финальный слой.
-            add_head (bool): Применять ли выходную проекцию на словарь предметов.
         """
         super(BERT4RecLLM, self).__init__(
             item_num=item_num,
@@ -36,15 +38,28 @@ class BERT4RecLLM(BERT4Rec):
         )
 
         self.reconstruction_layer = reconstruction_layer
+        self.multi_profile = multi_profile
+
+        # Инициализация функций агрегации последовательности (для реконструкции)
         if weighting_scheme == 'mean':
             self.weighting_fn = mean_weightening
             self.weighting_kwargs = {}
+            self.profile_aggregator = None
         elif weighting_scheme == 'exponential':
             self.weighting_fn = exponential_weightening
             self.weighting_kwargs = {'weight_scale': weight_scale}
+            self.profile_aggregator = None
         elif weighting_scheme == 'attention':
-            self.weighting_fn = SimpleAttentionAggregator(self.hidden_units)
+            self.weighting_fn = None
             self.weighting_kwargs = {}
+            # Если хотим attention по item-секвенции (для реконструкции) — уже есть SimpleAttentionAggregator(hidden_units).
+            # Но для профилей (ниже) нужен attention под их размер.
+            self.profile_aggregator = SimpleAttentionAggregator(profile_emb_dim)  # или hidden_units, см. ниже
+        else:
+            # fallback
+            self.weighting_fn = mean_weightening
+            self.weighting_kwargs = {}
+            self.profile_aggregator = None
 
         self.use_down_scale = use_down_scale
         self.use_upscale = use_upscale
@@ -54,36 +69,82 @@ class BERT4RecLLM(BERT4Rec):
         if use_upscale:
             self.hidden_layer_transform = nn.Linear(self.hidden_units, profile_emb_dim)
 
+    def aggregate_profile(self, user_profile_emb: torch.Tensor):
+        """
+        user_profile_emb: [batch_size, emb_dim] или [batch_size, K, emb_dim]
+        Возвращает: [batch_size, hidden_units] (если use_down_scale=True)
+                    либо [batch_size, emb_dim] (если False).
+        """
+        if user_profile_emb is None:
+            return None
+
+        # Если single-profile => [B, emb_dim]
+        if user_profile_emb.dim() == 2:
+            if self.use_down_scale:
+                return self.profile_transform(user_profile_emb)  # => [B, hidden_units]
+            else:
+                return user_profile_emb
+
+        # Иначе multi-profile => [B, K, emb_dim]
+        bsz, K, edim = user_profile_emb.shape
+        if self.use_down_scale:
+            # Применим линейно к каждому из K
+            user_profile_emb = user_profile_emb.view(bsz * K, edim)
+            user_profile_emb = self.profile_transform(user_profile_emb)
+            user_profile_emb = user_profile_emb.view(bsz, K, self.hidden_units)
+            emb_dim_now = self.hidden_units
+        else:
+            emb_dim_now = edim
+
+        # Вызываем attention или mean/exponential
+        if self.profile_aggregator is not None:
+            aggregated = self.profile_aggregator(user_profile_emb)  # => [bsz, emb_dim_now]
+        else:
+            aggregated = self.weighting_fn(user_profile_emb, **self.weighting_kwargs)  # => [bsz, emb_dim_now]
+
+        return aggregated
+
     def forward(self, input_seq, user_profile_emb=None, return_hidden_states=False):
         """
         Args:
-            input_seq (torch.Tensor): Индексы предметов [batch_size, seq_len].
-            user_profile_emb (torch.Tensor or None): Эмбеддинги профиля пользователя [batch_size, user_emb_dim].
-            return_hidden_states (bool): Возвращать ли скрытые состояния всех слоёв.
-
-        Returns:
-            torch.Tensor: Логиты предсказаний [batch_size, seq_len, item_num + 1] или скрытые состояния [batch_size, seq_len, hidden_units], если add_head=False.
-            torch.Tensor or None: Реконструированный профиль [batch_size, user_emb_dim] или None, если user_profile_emb отсутствует.
-            torch.Tensor or None: Скрытое состояние для реконструкции профиля [batch_size, hidden_units] или None.
+            input_seq: [batch_size, seq_len]
+            user_profile_emb: [batch_size, emb_dim] или [batch_size, K, emb_dim]
         """
-        attention_mask = (input_seq != 0).long()  # [batch_size, seq_len]
-        outputs = self.bert(input_ids=input_seq, attention_mask=attention_mask, output_hidden_states=True)
+        # 1) Сначала можем агрегировать профили, если нужно.
+        user_profile_emb_agg = self.aggregate_profile(user_profile_emb)
+        # user_profile_emb_agg => [B, hidden_units] (если use_down_scale=True)
+        #                       или [B, emb_dim]    (если False)
+        # Далее вы решаете, как использовать user_profile_emb_agg в BERT4Rec:
+        #   - Можете сложить с sequence_output
+        #   - Можете вернуть просто как reconstruction_input
+        #   - Или вообще использовать в лоссе отдельно.
 
+        # 2) Прямой проход BERT
+        attention_mask = (input_seq != 0).long()  # [batch_size, seq_len]
+        outputs = self.bert(
+            input_ids=input_seq,
+            attention_mask=attention_mask,
+            output_hidden_states=True
+        )
         sequence_output = outputs.last_hidden_state  # [batch_size, seq_len, hidden_units]
 
+        # 3) Логиты или фичи
         if self.add_head:
-            logits = self.out(sequence_output)  # [batch_size, seq_len, item_num + 1]
+            logits = self.out(sequence_output)  # [batch_size, seq_len, item_num+1]
         else:
             logits = sequence_output  # [batch_size, seq_len, hidden_units]
 
-        hidden_states = outputs.hidden_states  # Tuple of hidden states
+        hidden_states = outputs.hidden_states  # tuple всех слоёв [batch_size, seq_len, hidden_units]
 
-        # Выбор слоя для реконструкции
+        # 4) Выбор слоя для reconstruction
         if self.reconstruction_layer == -1:
-            selected_hidden_state = hidden_states[-1]  # Финальный слой
+            selected_hidden_state = hidden_states[-1]  # финальный
         else:
-            selected_hidden_state = hidden_states[self.reconstruction_layer]  # Выбранный слой
+            selected_hidden_state = hidden_states[self.reconstruction_layer]
 
-        # агрегация по последовательности
-        reconstruction_input = self.weighting_fn(selected_hidden_state, **self.weighting_kwargs)  # [batch_size, hidden_units]  # [batch_size, hidden_units]
+        # 5) Агрегация (mean/attention) item-секвенции => reconstruction_input
+        #    (не путайте с user_profile_emb)
+        reconstruction_input = self.weighting_fn(selected_hidden_state, **self.weighting_kwargs)
+        # => [batch_size, hidden_units]
+
         return logits, reconstruction_input
