@@ -12,7 +12,8 @@ from src.models.bert4rec import BERT4Rec
 from src.models.bert4recllm import BERT4RecLLM
 from src.models.sasrec import SASRec
 from src.models.sasrecllm import SASRecLLM
-from src.utils import set_seed, load_user_profile_embeddings, init_criterion_reconstruct
+from src.utils import set_seed, load_user_profile_embeddings, init_criterion_reconstruct, calculate_recsys_loss, \
+    calculate_guide_loss
 from src.dataset import SequenceDataset
 from src.evaluation import evaluate_model
 import mlflow
@@ -85,6 +86,7 @@ def train_model(config):
     # Оптимизатор и функция потерь
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['training']['learning_rate'])
     criterion = nn.CrossEntropyLoss(ignore_index=0)  # Игнорируем паддинги
+    criterion_reconstruct_fn = None
     if model_name in ['SASRecLLM', 'BERT4RecLLM']:
         if 'reconstruct_loss' in config['training']:
             criterion_reconstruct_fn = init_criterion_reconstruct(config['training']['reconstruct_loss'])
@@ -110,6 +112,7 @@ def train_model(config):
         total_loss = 0
         # c = 0
         for batch in tqdm(train_loader):
+            break
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
@@ -125,23 +128,13 @@ def train_model(config):
 
                 outputs, hidden_for_reconstruction = model(input_seq, user_profile_emb=user_profile_emb)
 
-                logits = outputs.view(-1, outputs.size(-1))
-                targets = target_seq.view(-1)
-
                 # лосс модели
-                loss_model = criterion(logits, targets)
+                loss_model = calculate_recsys_loss(target_seq, outputs, criterion)
 
-                # pass
-                if model.use_down_scale:
-                    user_profile_emb_transformed = model.profile_transform(user_profile_emb)
-                else:
-                    user_profile_emb_transformed = user_profile_emb.detach().clone().to(device)
-                if model.use_upscale:
-                    hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
-                # print(user_profile_emb_transformed.shape, hidden_for_reconstruction.shape, null_profile_binary_mask_batch.shape)
-                user_profile_emb_transformed[null_profile_binary_mask_batch] = hidden_for_reconstruction[null_profile_binary_mask_batch]
+                # лосс для профилей
+                loss_guide = calculate_guide_loss(model, user_profile_emb, hidden_for_reconstruction,
+                                 null_profile_binary_mask_batch, criterion_reconstruct_fn, device)
 
-                loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
                 if epoch < fine_tune_epoch:
                     loss = alpha * loss_guide + (1 - alpha) * loss_model
                 else:
@@ -149,15 +142,7 @@ def train_model(config):
             else:
                 # Для SASRec получаем только outputs
                 outputs = model(input_seq)
-
-                # Проверяем, если outputs является кортежем (на всякий случай)
-                if isinstance(outputs, tuple):
-                    outputs = outputs[0]
-
-                logits = outputs.view(-1, outputs.size(-1))
-                targets = target_seq.view(-1)
-
-                loss = criterion(logits, targets)
+                loss = calculate_recsys_loss(target_seq, outputs, criterion)
 
             # Шаги оптимизации
             optimizer.zero_grad()
@@ -179,7 +164,9 @@ def train_model(config):
 
         # Оценка на валидационном наборе
         if epoch % config['training']['eval_every'] == 0:
-            val_metrics = evaluate_model(model, valid_loader, device, mode='validation')
+            val_metrics = evaluate_model(model, valid_loader, device, mode='validation',
+                                         model_criterion=criterion, criterion_reconstruct_fn=criterion_reconstruct_fn,
+                                         user_profile_embeddings=user_profile_embeddings, null_profile_binary_mask=null_profile_binary_mask)
             print(f"Validation Metrics: {val_metrics}")
             # Логирование метрик с заменой недопустимых символов
             for metric_name, metric_value in val_metrics.items():
@@ -276,11 +263,13 @@ def process_config(config_file):
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description="Train recommendation model")
-    parser.add_argument('--config', type=str, required=True, help="Path to config file")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(description="Train recommendation model")
+    # parser.add_argument('--config', type=str, required=True, help="Path to config file")
+    # args = parser.parse_args()
 
-    process_config(args.config)
+    # process_config(args.config)
+
+    process_config('experiments/configs/sasrec_llm.yaml')
 
     # with open(args.config, 'r', encoding='utf-8') as f:
     #     config = yaml.safe_load(f)

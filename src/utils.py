@@ -50,3 +50,30 @@ def init_criterion_reconstruct(criterion_name):
     if criterion_name == 'CosSim':
         return lambda x,y: 1 - torch.mean(nn.CosineSimilarity(dim=1, eps=1e-6)(x,y))
     raise Exception('Not existing reconstruction loss')
+
+
+def calculate_recsys_loss(target_seq, outputs, criterion):
+    # Проверяем, если outputs является кортежем (на всякий случай)
+    if isinstance(outputs, tuple):
+        outputs = outputs[0]
+
+    logits = outputs.view(-1, outputs.size(-1))
+    targets = target_seq.view(-1)
+
+    loss = criterion(logits, targets)
+    return loss
+
+
+def calculate_guide_loss(model, user_profile_emb, hidden_for_reconstruction,
+                                 null_profile_binary_mask_batch, criterion_reconstruct_fn, device):
+    if model.use_down_scale:
+        user_profile_emb_transformed = model.profile_transform(user_profile_emb)
+    else:
+        user_profile_emb_transformed = user_profile_emb.detach().clone().to(device)
+    if model.use_upscale:
+        hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
+    user_profile_emb_transformed[null_profile_binary_mask_batch] = hidden_for_reconstruction[
+        null_profile_binary_mask_batch]
+
+    loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
+    return loss_guide

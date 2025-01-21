@@ -3,7 +3,12 @@
 import torch
 import numpy as np
 
-def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10, 20]):
+from src.utils import calculate_guide_loss, calculate_recsys_loss
+
+
+def evaluate_model(model, data_loader, device, mode='validation',
+                   model_criterion=None, criterion_reconstruct_fn=None, user_profile_embeddings=None,
+                   null_profile_binary_mask=None, k_list=[5, 10, 20]):
     """
     Оценивает модель на заданном наборе данных.
 
@@ -20,6 +25,7 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
     model.eval()
     recalls = {k: 0 for k in k_list}
     ndcgs = {k: 0 for k in k_list}
+    losses = {'loss_recsys': [], 'loss_guide': []}
 
     with torch.no_grad():
         # c = 0
@@ -27,13 +33,29 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
+            # Получаем эмбеддинги профиля пользователя, если они существуют
+            if user_profile_embeddings is not None:
+                user_profile_emb = user_profile_embeddings[user_ids]
+                null_profile_binary_mask_batch = null_profile_binary_mask[user_ids]
+            else:
+                user_profile_emb = None
 
             # Прямой проход
             outputs = model(input_seq)
+            hidden_for_reconstruction = None
 
             # Если модель возвращает кортеж, извлекаем первый элемент
             if isinstance(outputs, tuple):
-                outputs = outputs[0]
+                outputs, hidden_for_reconstruction = outputs
+
+            if model_criterion is not None:
+                loss_model = calculate_recsys_loss(target_seq, outputs, model_criterion)
+                losses['loss_recsys'].append(loss_model.item())
+            if criterion_reconstruct_fn is not None:
+                loss_guide = calculate_guide_loss(model, user_profile_emb, hidden_for_reconstruction,
+                                 null_profile_binary_mask_batch, criterion_reconstruct_fn, device)
+                losses['loss_guide'].append(loss_guide.item())
+                print(loss_guide.item())
 
             # Получаем предсказания для последнего элемента в последовательности
             logits = outputs[:, -1, :]  # [batch_size, item_num + 1]
@@ -84,5 +106,7 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
         metrics[f'Recall@{k}'] = (recalls[k] / len(data_loader.dataset))
         metrics[f'NDCG@{k}'] = (ndcgs[k] / len(data_loader.dataset))
         # metrics[f'fIsIn{k}'] = (is_in_k[k]/len(data_loader))
-
+    for loss_name in losses:
+        if len(losses[loss_name]) > 0:
+            metrics[loss_name] = np.mean(losses[loss_name])
     return metrics
