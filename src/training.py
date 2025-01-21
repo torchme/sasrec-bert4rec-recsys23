@@ -12,8 +12,8 @@ from src.models.bert4rec import BERT4Rec
 from src.models.bert4recllm import BERT4RecLLM
 from src.models.sasrec import SASRec
 from src.models.sasrecllm import SASRecLLM
-from src.utils import set_seed, load_user_profile_embeddings, init_criterion_reconstruct, calculate_recsys_loss, \
-    calculate_guide_loss
+from src.utils import set_seed, load_user_profile_embeddings, init_criterion_reconstruct, \
+    load_user_profile_embeddings_any, calculate_recsys_loss, calculate_guide_loss
 from src.dataset import SequenceDataset
 from src.evaluation import evaluate_model
 import mlflow
@@ -50,12 +50,16 @@ def train_model(config):
 
     # Получение имени модели из конфигурации
     model_name = config['model']['model_name']
+    multi_profile = config['model'].get('multi_profile', False)
 
     if model_name in ['SASRecLLM', 'BERT4RecLLM']:
-        user_profile_embeddings, null_profile_binary_mask = load_user_profile_embeddings(
-            config['data']['user_profile_embeddings_path'],
-            user_id_mapping
-        )  # Tensor размерности [num_users, profile_emb_dim]
+        # Загружаем эмбеддинги профилей
+        # Получаем Tensor [num_users, profile_emb_dim] ИЛИ [num_users, K, profile_emb_dim]
+        user_profile_embeddings, null_profile_binary_mask = load_user_profile_embeddings_any(config, user_id_mapping)
+
+        if user_profile_embeddings is not None:
+            profile_emb_dim = user_profile_embeddings.shape[-1]
+
         profile_emb_dim = user_profile_embeddings.size(1)
         assert profile_emb_dim != 2
 
@@ -86,12 +90,14 @@ def train_model(config):
     # Оптимизатор и функция потерь
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['training']['learning_rate'])
     criterion = nn.CrossEntropyLoss(ignore_index=0)  # Игнорируем паддинги
-    criterion_reconstruct_fn = None
+
     if model_name in ['SASRecLLM', 'BERT4RecLLM']:
         if 'reconstruct_loss' in config['training']:
             criterion_reconstruct_fn = init_criterion_reconstruct(config['training']['reconstruct_loss'])
         else:
             criterion_reconstruct_fn = lambda x,y: nn.MSELoss()(x,y)
+    else:
+        criterion_reconstruct_fn = None
 
     # Создание директории для сохранения модели
     model_dir = config['training']['model_dir']
@@ -105,14 +111,18 @@ def train_model(config):
     # Параметры для комбинированной функции потерь
     alpha = config['training'].get('alpha', 0.5)
     fine_tune_epoch = config['training'].get('fine_tune_epoch', config['training']['epochs'] // 2)
+    scale_guide_loss = config['training'].get('scale_guide_loss', False)
+
+    save_checkpoints = config['training'].get('save_checkpoints', False)
+    eval_every = config['training'].get('eval_every', 1)
+    epochs = config['training']['epochs']
 
     # Цикл обучения
-    for epoch in range(1, config['training']['epochs'] + 1):
+    for epoch in range(1, epochs + 1):
         model.train()
         total_loss = 0
         # c = 0
         for batch in tqdm(train_loader):
-            break
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
@@ -125,24 +135,74 @@ def train_model(config):
                     null_profile_binary_mask_batch = null_profile_binary_mask[user_ids]
                 else:
                     user_profile_emb = None
+                    null_profile_binary_mask_batch = None
 
                 outputs, hidden_for_reconstruction = model(input_seq, user_profile_emb=user_profile_emb)
 
+                logits = outputs.view(-1, outputs.size(-1))
+                targets = target_seq.view(-1)
+
                 # лосс модели
-                loss_model = calculate_recsys_loss(target_seq, outputs, criterion)
+                loss_model = criterion(logits, targets)
 
-                # лосс для профилей
-                loss_guide = calculate_guide_loss(model, user_profile_emb, hidden_for_reconstruction,
-                                 null_profile_binary_mask_batch, criterion_reconstruct_fn, device)
-
-                if epoch < fine_tune_epoch:
-                    loss = alpha * loss_guide + (1 - alpha) * loss_model
+                # pass
+                if model.use_down_scale:
+                    user_profile_emb_transformed = model.profile_transform(user_profile_emb)
                 else:
-                    loss = loss_model
+                    user_profile_emb_transformed = user_profile_emb.detach().clone().to(device)
+                if model.use_upscale:
+                    hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
+                # print(user_profile_emb_transformed.shape, hidden_for_reconstruction.shape, null_profile_binary_mask_batch.shape)
+                if (
+                    user_profile_emb_transformed is not None
+                    and user_profile_emb_transformed.dim() == 3
+                    and hidden_for_reconstruction is not None
+                    and hidden_for_reconstruction.dim() == 2
+                ):
+                    # user_profile_emb_transformed: [B, K, H]
+                    # hidden_for_reconstruction: [B, H]
+                    B, K, H = user_profile_emb_transformed.shape
+                    # "Раздуваем" hidden_for_reconstruction, чтобы стало [B, K, H]
+                    hidden_for_reconstruction = hidden_for_reconstruction.unsqueeze(1)  # => [B, 1, H]
+                    hidden_for_reconstruction = hidden_for_reconstruction.expand(-1, K, -1)
+                    # теперь => [B, K, H]
+
+                user_profile_emb_transformed[null_profile_binary_mask_batch] = \
+                hidden_for_reconstruction[null_profile_binary_mask_batch]
+
+                loss_guide = 0.0
+                loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
+
+                if scale_guide_loss:
+
+                    loss_model_val = loss_model.item()
+                    loss_guide_val = loss_guide.item()
+                    eps = 1e-8
+
+                    scale_for_guide = loss_model_val / (loss_guide_val + eps)
+                    scaled_loss_guide = loss_guide * scale_for_guide
+                    if epoch < fine_tune_epoch:
+                        loss = alpha * scaled_loss_guide + (1 - alpha) * loss_model
+                    else:
+                        loss = loss_model
+                else:
+                    # Если scale_guide_loss=False, логика остаётся исходной
+                    if epoch < fine_tune_epoch:
+                        loss = alpha * loss_guide + (1 - alpha) * loss_model
+                    else:
+                        loss = loss_model
             else:
                 # Для SASRec получаем только outputs
                 outputs = model(input_seq)
-                loss = calculate_recsys_loss(target_seq, outputs, criterion)
+
+                # Проверяем, если outputs является кортежем (на всякий случай)
+                if isinstance(outputs, tuple):
+                    outputs = outputs[0]
+
+                logits = outputs.view(-1, outputs.size(-1))
+                targets = target_seq.view(-1)
+
+                loss = criterion(logits, targets)
 
             # Шаги оптимизации
             optimizer.zero_grad()
@@ -158,6 +218,12 @@ def train_model(config):
 
         avg_loss = total_loss / len(train_loader)
         print(f"Epoch {epoch}/{config['training']['epochs']}, Loss: {avg_loss:.4f}")
+
+        # Сохраняем чекпоинт
+        if save_checkpoints:
+            checkpoint_path = os.path.join(model_dir, f'{model_name}_epoch_{epoch}.pt')
+            torch.save(model.state_dict(), checkpoint_path)
+            print(f"Checkpoint saved: {checkpoint_path}")
 
         # Логирование метрик в MLflow
         mlflow.log_metric('train_loss', avg_loss, step=epoch)
@@ -196,6 +262,8 @@ def train_model(config):
     mlflow.end_run()
 
 def get_model(model_name, config, device, profile_emb_dim=None):
+    multi_profile = config['model'].get('multi_profile', False)
+
     if model_name == 'SASRecLLM':
         model = SASRecLLM(
             item_num=config['model']['item_num'],
@@ -211,7 +279,8 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             dropout_rate=config['model']['dropout_rate'],
             initializer_range=config['model'].get('initializer_range', 0.02),
             add_head=config['model'].get('add_head', True),
-            reconstruction_layer=config['model'].get('reconstruction_layer', -1)
+            reconstruction_layer=config['model'].get('reconstruction_layer', -1),
+            multi_profile=multi_profile,  # наш дополнительный флаг
         ).to(device)
     elif model_name == 'SASRec':
         model = SASRec(
@@ -222,7 +291,7 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             num_heads=config['model']['num_heads'],
             dropout_rate=config['model']['dropout_rate'],
             initializer_range=config['model'].get('initializer_range', 0.02),
-            add_head=config['model'].get('add_head', True)
+            add_head=config['model'].get('add_head', True),
         ).to(device)
     elif model_name == 'BERT4Rec':
         model = BERT4Rec(
@@ -231,7 +300,7 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             hidden_units=config['model']['hidden_units'],
             num_heads=config['model']['num_heads'],
             num_layers=config['model']['num_blocks'],  # Используем num_blocks как num_layers
-            dropout_rate=config['model']['dropout_rate']
+            dropout_rate=config['model']['dropout_rate'],
         ).to(device)
     elif model_name == 'BERT4RecLLM':
         model = BERT4RecLLM(
@@ -247,7 +316,8 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             num_layers=config['model']['num_blocks'],  # Используем num_blocks как num_layers
             dropout_rate=config['model']['dropout_rate'],
             reconstruction_layer=config['model'].get('reconstruction_layer', -1),
-            add_head=config['model'].get('add_head', True)
+            add_head=config['model'].get('add_head', True),
+            multi_profile=multi_profile,  # наш дополнительный флаг
         ).to(device)
     else:
         raise ValueError(f"Unknown model name: {model_name}")
@@ -263,13 +333,11 @@ def process_config(config_file):
 if __name__ == '__main__':
     import argparse
 
-    # parser = argparse.ArgumentParser(description="Train recommendation model")
-    # parser.add_argument('--config', type=str, required=True, help="Path to config file")
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="Train recommendation model")
+    parser.add_argument('--config', type=str, required=True, help="Path to config file")
+    args = parser.parse_args()
 
-    # process_config(args.config)
-
-    process_config('experiments/configs/sasrec_llm.yaml')
+    process_config(args.config)
 
     # with open(args.config, 'r', encoding='utf-8') as f:
     #     config = yaml.safe_load(f)

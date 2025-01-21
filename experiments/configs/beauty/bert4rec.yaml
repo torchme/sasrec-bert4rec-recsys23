@@ -12,6 +12,9 @@ model:
   dropout_rate: 0.2
   initializer_range: 0.02
   add_head: True
+  reconstruction_layer: -1  # Используем последний слой для реконструкции
+  multi_profile: true       # Если true, то грузим несколько файлов профилей
+  profile_aggregation: "attention"  # Можно "attention", "mean" и т.д.
 
 training:
   batch_size: 256
@@ -21,6 +24,8 @@ training:
   model_dir: models/
   alpha: 0.5  # Параметр для комбинированной функции потерь (не используется для BERT4Rec)
   fine_tune_epoch: 25  # Эпоха, после которой начинаем тонкую настройку (не используется для BERT4Rec)
+  scale_guide_loss: true   # или false
+  save_checkpoints: true    # Если true, то будем сохранять чекпоинты после каждой эпохи
 
 data:
   train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
@@ -28,7 +33,10 @@ data:
   test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/test_sequences.pkl
   mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/mappings.pkl
   counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/counts.pkl
-  user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty.json  # Путь к эмбеддингам профилей пользователей
+  user_profile_embeddings_files:
+    - "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-several-e5-type-1-embs.json"
+    - "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-several-e5-type-2-embs.json"
+    - "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-several-e5-type-3-embs.json"
 
 
 experiment_name: "BERT4Rec Experiment"
