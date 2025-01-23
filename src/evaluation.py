@@ -35,8 +35,8 @@ def evaluate_model(model, data_loader, device, mode='validation',
             target_seq = target_seq.to(device)
             # Получаем эмбеддинги профиля пользователя, если они существуют
             if user_profile_embeddings is not None:
-                user_profile_emb = user_profile_embeddings[user_ids]
-                null_profile_binary_mask_batch = null_profile_binary_mask[user_ids]
+                user_profile_emb = user_profile_embeddings[user_ids].to(device)
+                null_profile_binary_mask_batch = null_profile_binary_mask[user_ids].to(device)
             else:
                 user_profile_emb = None
 
@@ -53,7 +53,7 @@ def evaluate_model(model, data_loader, device, mode='validation',
                 losses['loss_recsys'].append(loss_model.item())
             if criterion_reconstruct_fn is not None:
                 loss_guide = calculate_guide_loss(model, user_profile_emb, hidden_for_reconstruction,
-                                 null_profile_binary_mask_batch, criterion_reconstruct_fn, device)
+                                 null_profile_binary_mask_batch, criterion_reconstruct_fn)
                 losses['loss_guide'].append(loss_guide.item())
                 print(loss_guide.item())
 

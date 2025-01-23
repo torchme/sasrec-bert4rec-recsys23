@@ -27,8 +27,8 @@ def train_model(config):
     set_seed(config['seed'])
 
     # Загрузка обработанных данных
-    with open(config['data']['train_sequences'], 'rb') as f:
-        train_sequences = pickle.load(f)
+    with open(config['data']['profile_train_sequences'], 'rb') as f:
+        profile_train_sequences = pickle.load(f)
     with open(config['data']['valid_sequences'], 'rb') as f:
         valid_sequences = pickle.load(f)
     with open(config['data']['test_sequences'], 'rb') as f:
@@ -72,12 +72,20 @@ def train_model(config):
         profile_emb_dim = None
 
     # Создание датасетов
-    train_dataset = SequenceDataset(train_sequences, config['model']['maxlen'])
+    profile_train_dataset = SequenceDataset(profile_train_sequences, config['model']['maxlen'])
     valid_dataset = SequenceDataset(valid_sequences, config['model']['maxlen'])
     test_dataset = SequenceDataset(test_sequences, config['model']['maxlen'])
 
     # Создание DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=config['training']['batch_size'], shuffle=True)
+    profile_train_loader = DataLoader(profile_train_dataset, batch_size=config['training']['batch_size'], shuffle=True)
+    if config['data']['finetune_train_sequences'] == config['data']['profile_train_sequences']:
+        finetune_train_dataset = profile_train_dataset
+        finetune_train_loader = profile_train_loader
+    else:
+        with open(config['data']['finetune_train_sequences'], 'rb') as f:
+            finetune_train_sequences = pickle.load(f)
+        finetune_train_dataset = SequenceDataset(finetune_train_sequences, config['model']['maxlen'])
+        finetune_train_loader = DataLoader(finetune_train_dataset, batch_size=config['training']['batch_size'], shuffle=True)
     valid_loader = DataLoader(valid_dataset, batch_size=config['training']['batch_size'], shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=config['training']['batch_size'], shuffle=False)
 
@@ -117,6 +125,9 @@ def train_model(config):
     eval_every = config['training'].get('eval_every', 1)
     epochs = config['training']['epochs']
 
+    # делаем тренировочный - датасет с профилями
+    train_loader = profile_train_loader
+
     # Цикл обучения
     for epoch in range(1, epochs + 1):
         model.train()
@@ -131,50 +142,21 @@ def train_model(config):
             if model_name in ['SASRecLLM', 'BERT4RecLLM']:
                 # Получаем эмбеддинги профиля пользователя, если они существуют
                 if user_profile_embeddings is not None:
-                    user_profile_emb = user_profile_embeddings[user_ids]
-                    null_profile_binary_mask_batch = null_profile_binary_mask[user_ids]
+                    user_profile_emb = user_profile_embeddings[user_ids].to(device)
+                    null_profile_binary_mask_batch = null_profile_binary_mask[user_ids].to(device)
                 else:
                     user_profile_emb = None
                     null_profile_binary_mask_batch = None
 
                 outputs, hidden_for_reconstruction = model(input_seq, user_profile_emb=user_profile_emb)
-
-                logits = outputs.view(-1, outputs.size(-1))
-                targets = target_seq.view(-1)
-
                 # лосс модели
-                loss_model = criterion(logits, targets)
-
-                # pass
-                if model.use_down_scale:
-                    user_profile_emb_transformed = model.profile_transform(user_profile_emb)
-                else:
-                    user_profile_emb_transformed = user_profile_emb.detach().clone().to(device)
-                if model.use_upscale:
-                    hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
-                # print(user_profile_emb_transformed.shape, hidden_for_reconstruction.shape, null_profile_binary_mask_batch.shape)
-                if (
-                    user_profile_emb_transformed is not None
-                    and user_profile_emb_transformed.dim() == 3
-                    and hidden_for_reconstruction is not None
-                    and hidden_for_reconstruction.dim() == 2
-                ):
-                    # user_profile_emb_transformed: [B, K, H]
-                    # hidden_for_reconstruction: [B, H]
-                    B, K, H = user_profile_emb_transformed.shape
-                    # "Раздуваем" hidden_for_reconstruction, чтобы стало [B, K, H]
-                    hidden_for_reconstruction = hidden_for_reconstruction.unsqueeze(1)  # => [B, 1, H]
-                    hidden_for_reconstruction = hidden_for_reconstruction.expand(-1, K, -1)
-                    # теперь => [B, K, H]
-
-                user_profile_emb_transformed[null_profile_binary_mask_batch] = \
-                hidden_for_reconstruction[null_profile_binary_mask_batch]
-
-                loss_guide = 0.0
-                loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
-
+                loss_model = calculate_recsys_loss(target_seq, outputs, criterion)
+                loss_guide = calculate_guide_loss(model=model,
+                                                 user_profile_emb=user_profile_emb,
+                                                 hidden_for_reconstruction=hidden_for_reconstruction,
+                                                 null_profile_binary_mask_batch=null_profile_binary_mask_batch,
+                                                 criterion_reconstruct_fn=criterion_reconstruct_fn,)
                 if scale_guide_loss:
-
                     loss_model_val = loss_model.item()
                     loss_guide_val = loss_guide.item()
                     eps = 1e-8
@@ -191,18 +173,16 @@ def train_model(config):
                         loss = alpha * loss_guide + (1 - alpha) * loss_model
                     else:
                         loss = loss_model
+
+                # If it is the last epoch with profiles, we need to update the loader
+                if epoch == fine_tune_epoch - 1:
+                    train_loader = finetune_train_loader
+
             else:
                 # Для SASRec получаем только outputs
                 outputs = model(input_seq)
-
-                # Проверяем, если outputs является кортежем (на всякий случай)
-                if isinstance(outputs, tuple):
-                    outputs = outputs[0]
-
-                logits = outputs.view(-1, outputs.size(-1))
-                targets = target_seq.view(-1)
-
-                loss = criterion(logits, targets)
+                loss_model = calculate_recsys_loss(target_seq, outputs, criterion)
+                loss = loss_model
 
             # Шаги оптимизации
             optimizer.zero_grad()
@@ -262,8 +242,6 @@ def train_model(config):
     mlflow.end_run()
 
 def get_model(model_name, config, device, profile_emb_dim=None):
-    multi_profile = config['model'].get('multi_profile', False)
-
     if model_name == 'SASRecLLM':
         model = SASRecLLM(
             item_num=config['model']['item_num'],
@@ -280,7 +258,8 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             initializer_range=config['model'].get('initializer_range', 0.02),
             add_head=config['model'].get('add_head', True),
             reconstruction_layer=config['model'].get('reconstruction_layer', -1),
-            multi_profile=multi_profile,  # наш дополнительный флаг
+            multi_profile=config['model'].get('multi_profile', False),  # наш дополнительный флаг
+            multi_profile_aggr_scheme=config['model']['multi_profile_aggr_scheme'],
         ).to(device)
     elif model_name == 'SASRec':
         model = SASRec(
@@ -317,7 +296,7 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             dropout_rate=config['model']['dropout_rate'],
             reconstruction_layer=config['model'].get('reconstruction_layer', -1),
             add_head=config['model'].get('add_head', True),
-            multi_profile=multi_profile,  # наш дополнительный флаг
+            multi_profile=config['model'].get('multi_profile', False),  # наш дополнительный флаг
         ).to(device)
     else:
         raise ValueError(f"Unknown model name: {model_name}")

@@ -90,13 +90,17 @@ def load_user_profile_embeddings_any(config, user_id_mapping):
     Иначе => грузим одиночный файл.
     """
     multi_profile = config['model'].get('multi_profile', False)
-
+    files_list = config['data']['user_profile_embeddings_files']
     if multi_profile:
-        files_list = config['data']['user_profile_embeddings_files']
         return load_user_profiles_multi(files_list, user_id_mapping)
-    else:
-        path = config['data']['user_profile_embeddings_path']
-        return load_user_profile_embeddings(path, user_id_mapping)
+    return load_user_profile_embeddings(files_list[0], user_id_mapping)
+
+    # if multi_profile:
+    #     files_list = config['data']['user_profile_embeddings_files']
+    #     return load_user_profiles_multi(files_list, user_id_mapping)
+    # else:
+    #     path = config['data']['user_profile_embeddings_path']
+    #     return load_user_profile_embeddings(path, user_id_mapping)
 
 
 def init_criterion_reconstruct(criterion_name):
@@ -121,16 +125,30 @@ def calculate_recsys_loss(target_seq, outputs, criterion):
     return loss
 
 
-def calculate_guide_loss(model, user_profile_emb, hidden_for_reconstruction,
-                                 null_profile_binary_mask_batch, criterion_reconstruct_fn, device):
-    if model.use_down_scale:
-        user_profile_emb_transformed = model.profile_transform(user_profile_emb)
-    else:
-        user_profile_emb_transformed = user_profile_emb.detach().clone().to(device)
+def calculate_guide_loss(model,
+                         user_profile_emb,
+                         hidden_for_reconstruction,
+                         null_profile_binary_mask_batch,
+                         criterion_reconstruct_fn):
+    # if model.use_down_scale:
+    #     user_profile_emb_transformed = model.profile_transform(user_profile_emb)
+    # else:
+    #     user_profile_emb_transformed = user_profile_emb.detach().clone().to(device)
+    # if model.use_upscale:
+    #     hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
+    # user_profile_emb_transformed[null_profile_binary_mask_batch] = hidden_for_reconstruction[
+    #     null_profile_binary_mask_batch]
+    #
+    # loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
+    # return loss_guide
+
+    # pass
+    user_profile_emb_transformed = model.aggregate_profile(user_profile_emb)
     if model.use_upscale:
         hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
-    user_profile_emb_transformed[null_profile_binary_mask_batch] = hidden_for_reconstruction[
-        null_profile_binary_mask_batch]
+
+    user_profile_emb_transformed[null_profile_binary_mask_batch] = \
+        hidden_for_reconstruction[null_profile_binary_mask_batch]
 
     loss_guide = criterion_reconstruct_fn(hidden_for_reconstruction, user_profile_emb_transformed)
     return loss_guide

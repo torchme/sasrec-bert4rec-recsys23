@@ -22,7 +22,8 @@ class BERT4RecLLM(BERT4Rec):
         dropout_rate,
         reconstruction_layer=-1,
         add_head=True,
-        multi_profile=False  # <-- добавим флаг для много-профильного сценария
+        multi_profile=False,  # <-- добавим флаг для много-профильного сценария
+        multi_profile_aggr_scheme = 'mean',
     ):
         """
         BERT4Rec с поддержкой пользовательских эмбеддингов и реконструкции профиля (LLM часть).
@@ -40,26 +41,29 @@ class BERT4RecLLM(BERT4Rec):
         self.reconstruction_layer = reconstruction_layer
         self.multi_profile = multi_profile
 
-        # Инициализация функций агрегации последовательности (для реконструкции)
+        # Агрегация последовательности взаимодействий
         if weighting_scheme == 'mean':
             self.weighting_fn = mean_weightening
             self.weighting_kwargs = {}
-            self.profile_aggregator = None
         elif weighting_scheme == 'exponential':
             self.weighting_fn = exponential_weightening
             self.weighting_kwargs = {'weight_scale': weight_scale}
-            self.profile_aggregator = None
         elif weighting_scheme == 'attention':
-            self.weighting_fn = None
+            self.weighting_fn = SimpleAttentionAggregator(self.hidden_units)
             self.weighting_kwargs = {}
-            # Если хотим attention по item-секвенции (для реконструкции) — уже есть SimpleAttentionAggregator(hidden_units).
-            # Но для профилей (ниже) нужен attention под их размер.
-            self.profile_aggregator = SimpleAttentionAggregator(profile_emb_dim)  # или hidden_units, см. ниже
         else:
-            # fallback
-            self.weighting_fn = mean_weightening
-            self.weighting_kwargs = {}
-            self.profile_aggregator = None
+            raise NotImplementedError(f'No such weighting_scheme {weighting_scheme} exists')
+
+        # Агрегация нескольких профилей
+        if weighting_scheme == 'mean':
+            self.profile_aggregator = mean_weightening
+            self.multi_profile_weighting_kwargs = {}
+        elif weighting_scheme == 'attention':
+            self.profile_aggregator = SimpleAttentionAggregator(profile_emb_dim if not use_down_scale
+                                                                else self.hidden_units)
+            self.multi_profile_weighting_kwargs = {}
+        else:
+            raise NotImplementedError(f'No such multi_profile_aggr_scheme {multi_profile_aggr_scheme} exists')
 
         self.use_down_scale = use_down_scale
         self.use_upscale = use_upscale
@@ -69,39 +73,37 @@ class BERT4RecLLM(BERT4Rec):
         if use_upscale:
             self.hidden_layer_transform = nn.Linear(self.hidden_units, profile_emb_dim)
 
-    def aggregate_profile(self, user_profile_emb: torch.Tensor):
+    def aggregate_profile(self, user_profile_emb):
         """
-        user_profile_emb: [batch_size, emb_dim] или [batch_size, K, emb_dim]
-        Возвращает: [batch_size, hidden_units] (если use_down_scale=True)
-                    либо [batch_size, emb_dim] (если False).
+        user_profile_emb: [batch_size, emb_dim]  или  [batch_size, K, emb_dim]
+        Возвращает: [batch_size, hidden_units] (если use_down_scale=True) либо [batch_size, emb_dim].
         """
         if user_profile_emb is None:
             return None
 
-        # Если single-profile => [B, emb_dim]
         if user_profile_emb.dim() == 2:
+            # Случай single-profile (batch_size, emb_dim)
             if self.use_down_scale:
-                return self.profile_transform(user_profile_emb)  # => [B, hidden_units]
+                return self.profile_transform(user_profile_emb)  # => [batch_size, hidden_units]
             else:
-                return user_profile_emb
+                return user_profile_emb.detach().clone()
 
-        # Иначе multi-profile => [B, K, emb_dim]
+        # Иначе multi-profile => [batch_size, K, emb_dim]
         bsz, K, edim = user_profile_emb.shape
+
+        # Сначала down_scale (если нужно)
         if self.use_down_scale:
-            # Применим линейно к каждому из K
+            # Применим линейно к каждому из K профилей
             user_profile_emb = user_profile_emb.view(bsz * K, edim)
-            user_profile_emb = self.profile_transform(user_profile_emb)
+            user_profile_emb = self.profile_transform(user_profile_emb)  # => [bsz*K, hidden_units]
             user_profile_emb = user_profile_emb.view(bsz, K, self.hidden_units)
             emb_dim_now = self.hidden_units
         else:
             emb_dim_now = edim
 
-        # Вызываем attention или mean/exponential
-        if self.profile_aggregator is not None:
-            aggregated = self.profile_aggregator(user_profile_emb)  # => [bsz, emb_dim_now]
-        else:
-            aggregated = self.weighting_fn(user_profile_emb, **self.weighting_kwargs)  # => [bsz, emb_dim_now]
-
+        # Теперь агрегируем
+        aggregated = self.profile_aggregator(user_profile_emb,
+                                             *self.multi_profile_weighting_kwargs)  # => [bsz, emb_dim_now])
         return aggregated
 
     def forward(self, input_seq, user_profile_emb=None, return_hidden_states=False):
@@ -111,7 +113,7 @@ class BERT4RecLLM(BERT4Rec):
             user_profile_emb: [batch_size, emb_dim] или [batch_size, K, emb_dim]
         """
         # 1) Сначала можем агрегировать профили, если нужно.
-        user_profile_emb_agg = self.aggregate_profile(user_profile_emb)
+        # user_profile_emb_agg = self.aggregate_profile(user_profile_emb)
         # user_profile_emb_agg => [B, hidden_units] (если use_down_scale=True)
         #                       или [B, emb_dim]    (если False)
         # Далее вы решаете, как использовать user_profile_emb_agg в BERT4Rec:

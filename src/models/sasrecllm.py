@@ -16,7 +16,6 @@ class SASRecLLM(SASRec):
         weight_scale=None,
         multi_profile=False,
         multi_profile_aggr_scheme='mean',
-        weight_scale_=None,
         *args,
         **kwargs
     ):
@@ -41,11 +40,9 @@ class SASRecLLM(SASRec):
         if weighting_scheme == 'mean':
             self.profile_aggregator = mean_weightening
             self.multi_profile_weighting_kwargs = {}
-        elif weighting_scheme == 'exponential':
-            self.profile_aggregator = exponential_weightening
-            self.multi_profile_weighting_kwargs = {'weight_scale': weight_scale}
         elif weighting_scheme == 'attention':
-            self.profile_aggregator = SimpleAttentionAggregator(profile_emb_dim)
+            self.profile_aggregator = SimpleAttentionAggregator(profile_emb_dim if not use_down_scale
+                                                                else self.hidden_units)
             self.multi_profile_weighting_kwargs = {}
         else:
             raise NotImplementedError(f'No such multi_profile_aggr_scheme {multi_profile_aggr_scheme} exists')
@@ -72,7 +69,7 @@ class SASRecLLM(SASRec):
             if self.use_down_scale:
                 return self.profile_transform(user_profile_emb)  # => [batch_size, hidden_units]
             else:
-                return user_profile_emb
+                return user_profile_emb.detach().clone()
 
         # Иначе multi-profile => [batch_size, K, emb_dim]
         bsz, K, edim = user_profile_emb.shape
@@ -91,7 +88,7 @@ class SASRecLLM(SASRec):
         aggregated = self.profile_aggregator(user_profile_emb, *self.multi_profile_weighting_kwargs)  # => [bsz, emb_dim_now])
         return aggregated
 
-    def forward(self, input_ids, user_profile_emb=None, return_hidden_states=False):
+    def forward(self, input_ids, return_hidden_states=False):
         # 1) агрегируем профиль
         # user_profile_emb_agg = self.aggregate_profile(user_profile_emb)
 
@@ -134,7 +131,7 @@ class SASRecLLM(SASRec):
         if self.reconstruction_layer == -1:
             reconstruction_input = self.weighting_fn(outputs, **self.weighting_kwargs)  # [batch_size, hidden_units]
         else:
-            reconstruction_input = self.weighting_fn(hidden_states[self.reconstruction_layer % 2], **self.weighting_kwargs)  # [batch_size, hidden_units]
+            reconstruction_input = self.weighting_fn(hidden_states[self.reconstruction_layer], **self.weighting_kwargs)  # [batch_size, hidden_units]
 
         # 4) add_head => logits
         if self.add_head:
