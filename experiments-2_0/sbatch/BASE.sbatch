@@ -10,5 +10,5 @@
 #SBATCH --constraint="type_a|type_b|type_c|type_e"
 
 # Executable
-chmod +x experiments-2.0/bash/{model_name}/{dataset}/{experiment_name}/{seed_folder}/{bash_name}
-srun experiments-2.0/bash/{model_name}/{dataset}/{experiment_name}/{seed_folder}/{bash_name}
+chmod +x experiments-2_0/bash/{model_name}/{dataset}/{experiment_name}/{seed_folder}/{bash_name}
+srun experiments-2_0/bash/{model_name}/{dataset}/{experiment_name}/{seed_folder}/{bash_name}
