@@ -12,5 +12,3 @@
 # Executable
 chmod +x experiments/bash/{model_name}/{dataset}/{experiment_name}/{seed_folder}/{bash_name}
 srun experiments/bash/{model_name}/{dataset}/{experiment_name}/{seed_folder}/{bash_name}
-
-# model_name dataset bash_name time_to_take artefact_path experiment_name seed_folder bash_name
