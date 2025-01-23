@@ -7,6 +7,7 @@ __pycache__
 mlruns/
 .idea/
 notebooks/
+experiments-2_0/*/results/
 *.out
 
 venv

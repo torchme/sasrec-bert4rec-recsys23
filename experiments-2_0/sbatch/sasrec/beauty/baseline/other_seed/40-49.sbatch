@@ -10,5 +10,5 @@
 #SBATCH --constraint="type_a|type_b|type_c|type_e"
 
 # Executable
-chmod +x experiments/bash/sasrec/beauty/baseline/other_seed/40-49.sh
-srun experiments/bash/sasrec/beauty/baseline/other_seed/40-49.sh
+chmod +x experiments-2.0/bash/sasrec/beauty/baseline/other_seed/40-49.sh
+srun experiments-2.0/bash/sasrec/beauty/baseline/other_seed/40-49.sh
