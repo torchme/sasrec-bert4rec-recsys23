@@ -24,6 +24,7 @@ training:
   batch_size: 256
   epochs: {epochs}
   learning_rate: {learning_rate}
+  reconstruct_loss: {reconstruct_loss}
   eval_every: 1
   model_dir: models/
   alpha: {alpha}  # Параметр для комбинированной функции потерь
