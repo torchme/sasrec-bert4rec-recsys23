@@ -1,4 +1,4 @@
-seed:
+seed: {seed}
 
 model:
   model_name: SASRecLLM
