@@ -148,7 +148,7 @@ def train_model(config):
                     user_profile_emb = None
                     null_profile_binary_mask_batch = None
 
-                outputs, hidden_for_reconstruction = model(input_seq, user_profile_emb=user_profile_emb)
+                outputs, hidden_for_reconstruction = model(input_seq)
                 # лосс модели
                 loss_model = calculate_recsys_loss(target_seq, outputs, criterion)
                 loss_guide = calculate_guide_loss(model=model,
