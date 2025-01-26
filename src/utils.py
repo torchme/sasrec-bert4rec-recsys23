@@ -80,7 +80,12 @@ def load_user_profiles_multi(files_list, user_id_mapping):
     user_profiles_tensor_3d = torch.stack(all_tensors, dim=1)
     null_profile_binary_mask_2d = torch.stack(all_masks, dim=1)
 
-    return user_profiles_tensor_3d, null_profile_binary_mask_2d
+    # check that all profiles either exist or not
+    assert torch.all(~torch.any(null_profile_binary_mask_2d, dim=1) | torch.all(null_profile_binary_mask_2d, dim=1))
+
+    null_profile_binary_mask_1d = null_profile_binary_mask_2d[:, 0]
+
+    return user_profiles_tensor_3d, null_profile_binary_mask_1d
 
 
 def load_user_profile_embeddings_any(config, user_id_mapping):

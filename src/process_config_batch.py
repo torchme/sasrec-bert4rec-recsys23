@@ -1,6 +1,8 @@
 import os
 import argparse
 
+import mlflow
+
 from src.training import process_config
 
 
@@ -30,6 +32,11 @@ def process_files_in_range(folder_path, start, end):
             except Exception as e:
                 print(e)
                 print('Skipped config!')
+                try:
+                    # finishing run
+                    mlflow.end_run()
+                except Exception as e:
+                    pass
         else:
             print(f"Skipping non-file: {file_path}")
 
