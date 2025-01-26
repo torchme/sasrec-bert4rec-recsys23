@@ -18,7 +18,6 @@ model:
   use_upscale: {use_upscale}
   multi_profile: {multi_profile}
   multi_profile_aggr_scheme: {multi_profile_aggr_scheme}
-  profile_aggregation: "{profile_aggregation}"
 
 training:
   batch_size: 256

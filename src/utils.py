@@ -93,6 +93,8 @@ def load_user_profile_embeddings_any(config, user_id_mapping):
     files_list = config['data']['user_profile_embeddings_files']
     if multi_profile:
         return load_user_profiles_multi(files_list, user_id_mapping)
+    if isinstance(files_list, str):
+        files_list = [files_list]
     return load_user_profile_embeddings(files_list[0], user_id_mapping)
 
     # if multi_profile:

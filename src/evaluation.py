@@ -55,7 +55,7 @@ def evaluate_model(model, data_loader, device, mode='validation',
                 loss_guide = calculate_guide_loss(model, user_profile_emb, hidden_for_reconstruction,
                                  null_profile_binary_mask_batch, criterion_reconstruct_fn)
                 losses['loss_guide'].append(loss_guide.item())
-                print(loss_guide.item())
+                # print(loss_guide.item())
 
             # Получаем предсказания для последнего элемента в последовательности
             logits = outputs[:, -1, :]  # [batch_size, item_num + 1]

@@ -297,6 +297,7 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             reconstruction_layer=config['model'].get('reconstruction_layer', -1),
             add_head=config['model'].get('add_head', True),
             multi_profile=config['model'].get('multi_profile', False),  # наш дополнительный флаг
+            multi_profile_aggr_scheme=config['model']['multi_profile_aggr_scheme'],
         ).to(device)
     else:
         raise ValueError(f"Unknown model name: {model_name}")

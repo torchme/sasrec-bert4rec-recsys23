@@ -27,6 +27,6 @@ data:
   test_sequences: data/processed/test_sequences.pkl
   mappings: data/processed/mappings.pkl
   counts: data/processed/counts.pkl
-  user_profile_embeddings_path: data/emb/embedding_kion.json  # Путь к эмбеддингам профилей пользователей
+  user_profile_embeddings_files: data/emb/embedding_kion.json  # Путь к эмбеддингам профилей пользователей
 
 experiment_name: "baseline"
