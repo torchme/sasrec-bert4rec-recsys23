@@ -310,13 +310,15 @@ def process_config(config_file):
 if __name__ == '__main__':
     import argparse
 
-    # parser = argparse.ArgumentParser(description="Train recommendation model")
-    # parser.add_argument('--config', type=str, required=True, help="Path to config file")
-    # args = parser.parse_args()
-    #
-    # process_config(args.config)
+    parser = argparse.ArgumentParser(description="Train recommendation model")
+    parser.add_argument('--config', type=str, required=True, help="Path to config file")
+    args = parser.parse_args()
 
-    with open('experiments-2_0/configs/_help/llm.yaml', 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
+    process_config(args.config)
 
-    train_model(config)
+
+
+    # with open('experiments-2_0/configs/_help/llm.yaml', 'r', encoding='utf-8') as f:
+    #     config = yaml.safe_load(f)
+
+    # train_model(config)
