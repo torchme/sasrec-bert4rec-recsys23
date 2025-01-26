@@ -8,13 +8,13 @@ from sklearn.decomposition import PCA
 
 def reduce_dim(params):
     def pca_reducer(mtrx, n_components):
-        pca = PCA(n_components=128)
+        pca = PCA(n_components=256)
         pca.fit(mtrx)
         reduced_emb = pca.transform(mtrx)
         return reduced_emb
 
     def umap_reducer(mtrx, n_components):
-        umap_reducer = umap.UMAP(n_components=128)
+        umap_reducer = umap.UMAP(n_components=256)
         reduced_emb = umap_reducer.fit_transform(mtrx)
         return reduced_emb
 
