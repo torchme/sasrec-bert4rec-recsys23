@@ -57,10 +57,7 @@ def train_model(config):
         # Получаем Tensor [num_users, profile_emb_dim] ИЛИ [num_users, K, profile_emb_dim]
         user_profile_embeddings, null_profile_binary_mask = load_user_profile_embeddings_any(config, user_id_mapping)
 
-        if user_profile_embeddings is not None:
-            profile_emb_dim = user_profile_embeddings.shape[-1]
-
-        profile_emb_dim = user_profile_embeddings.size(1)
+        profile_emb_dim = user_profile_embeddings.size(-1)
         assert profile_emb_dim != 2
 
         # Перемещаем эмбеддинги профилей пользователей на устройство
@@ -143,7 +140,7 @@ def train_model(config):
                 # Получаем эмбеддинги профиля пользователя, если они существуют
                 if user_profile_embeddings is not None:
                     user_profile_emb = user_profile_embeddings[user_ids].to(device)
-                    null_profile_binary_mask_batch = null_profile_binary_mask[user_ids].to(device)
+                    null_profile_binary_mask_batch = null_profile_binary_mask[user_ids].flatten().to(device)
                 else:
                     user_profile_emb = None
                     null_profile_binary_mask_batch = None

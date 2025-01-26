@@ -25,7 +25,11 @@ def process_files_in_range(folder_path, start, end):
 
         if os.path.isfile(file_path):  # Check if it's a file
             print(f"Processing file: {file_path}")
-            process_config(file_path)
+            try:
+                process_config(file_path)
+            except Exception as e:
+                print(e)
+                print('Skipped config!')
         else:
             print(f"Skipping non-file: {file_path}")
 
