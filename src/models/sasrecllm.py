@@ -37,10 +37,10 @@ class SASRecLLM(SASRec):
             raise NotImplementedError(f'No such weighting_scheme {weighting_scheme} exists')
 
         # Агрегация нескольких профилей
-        if weighting_scheme == 'mean':
+        if multi_profile_aggr_scheme == 'mean':
             self.profile_aggregator = mean_weightening
             self.multi_profile_weighting_kwargs = {}
-        elif weighting_scheme == 'attention':
+        elif multi_profile_aggr_scheme == 'attention':
             self.profile_aggregator = SimpleAttentionAggregator(profile_emb_dim if not use_down_scale
                                                                 else self.hidden_units)
             self.multi_profile_weighting_kwargs = {}
