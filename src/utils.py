@@ -81,7 +81,9 @@ def load_user_profiles_multi(files_list, user_id_mapping):
     null_profile_binary_mask_2d = torch.stack(all_masks, dim=1)
 
     # check that all profiles either exist or not
-    assert torch.all(~torch.any(null_profile_binary_mask_2d, dim=1) | torch.all(null_profile_binary_mask_2d, dim=1))
+    inconsistent_profiles = ~(~torch.any(null_profile_binary_mask_2d, dim=1) | torch.all(null_profile_binary_mask_2d, dim=1))
+    null_profile_binary_mask_2d[inconsistent_profiles] = False  # set False for all profiles that are inconsistent
+    print(f'Number of inconcsistent profiles: {inconsistent_profiles.sum().item()}')
 
     null_profile_binary_mask_1d = null_profile_binary_mask_2d[:, 0]
 
