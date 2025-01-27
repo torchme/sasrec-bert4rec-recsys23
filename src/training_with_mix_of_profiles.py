@@ -68,6 +68,13 @@ def train_model(config):
         profile_emb_dim = user_profile_embeddings.size(-1)
         assert profile_emb_dim != 2
 
+        # добавляем нужное количество нулей
+        tensor_zeros = torch.zeros((num_users, profile_emb_dim))
+        user_profile_embeddings = torch.cat((tensor_zeros, user_profile_embeddings), dim=0)
+
+        tensor_false = torch.zeros((num_users, profile_emb_dim), dtype=torch.bool)
+        null_profile_binary_mask = torch.cat((tensor_false, null_profile_binary_mask), dim=0)
+
         # Перемещаем эмбеддинги профилей пользователей на устройство
         user_profile_embeddings = user_profile_embeddings.to(device)
         null_profile_binary_mask = null_profile_binary_mask.to(device)
@@ -143,9 +150,9 @@ def train_model(config):
             if model_name in ['SASRecLLM', 'BERT4RecLLM']:
                 # Получаем эмбеддинги профиля пользователя, если они существуют
                 if user_profile_embeddings is not None:
-                    user_ids_for_profile = torch.clamp(user_ids-num_users, min=0)
-                    user_profile_emb = user_profile_embeddings[user_ids_for_profile].to(device)
-                    null_profile_binary_mask_batch = null_profile_binary_mask[user_ids_for_profile].flatten().to(device)
+                    # user_ids_for_profile = torch.clamp(user_ids, min=0)
+                    user_profile_emb = user_profile_embeddings[user_ids].to(device)
+                    null_profile_binary_mask_batch = null_profile_binary_mask[user_ids].flatten().to(device)
                 else:
                     user_profile_emb = None
                     null_profile_binary_mask_batch = None
