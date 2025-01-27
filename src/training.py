@@ -130,6 +130,8 @@ def train_model(config):
         model.train()
         total_loss = 0
         # c = 0
+
+        print('Len of train loader:', len(train_loader))
         for batch in tqdm(train_loader):
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
@@ -170,10 +172,6 @@ def train_model(config):
                         loss = alpha * loss_guide + (1 - alpha) * loss_model
                     else:
                         loss = loss_model
-
-                # If it is the last epoch with profiles, we need to update the loader
-                if epoch == fine_tune_epoch - 1:
-                    train_loader = finetune_train_loader
 
             else:
                 # Для SASRec получаем только outputs
@@ -222,6 +220,11 @@ def train_model(config):
             for metric_name, metric_value in test_metrics.items():
                 sanitized_metric_name = metric_name.replace('@', '_')
                 mlflow.log_metric(f'test_{sanitized_metric_name}', metric_value, step=epoch)
+
+        # If it is the last epoch with profiles, we need to update the loader
+        if (epoch == fine_tune_epoch - 1) and (model_name in ['SASRecLLM', 'BERT4RecLLM']):
+            print('Changing loaders')
+            train_loader = finetune_train_loader
 
     # Оценка на тестовом наборе данных с использованием нового метода
     test_metrics = evaluate_model(model, test_loader, device, mode='test')
