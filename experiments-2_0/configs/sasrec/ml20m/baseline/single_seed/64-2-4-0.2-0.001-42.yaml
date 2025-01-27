@@ -1,0 +1,32 @@
+# experiments/configs/sasrec.yaml
+
+seed: 42
+
+model:
+  model_name: SASRec
+  item_num: 0  # Значения будут обновлены в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 64
+  num_blocks: 2
+  num_heads: 4
+  dropout_rate: 0.2
+  add_head: true
+
+training:
+  batch_size: 256
+  epochs: 100
+  learning_rate: 0.001
+  eval_every: 1
+  model_dir: models/
+
+data:
+  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/train_sequences.pkl
+  finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/counts.pkl
+  user_profile_embeddings_files: None
+
+experiment_name: "baseline"
