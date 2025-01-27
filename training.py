@@ -310,15 +310,16 @@ def process_config(config_file):
 if __name__ == '__main__':
     import argparse
 
-    parser = argparse.ArgumentParser(description="Train recommendation model")
-    parser.add_argument('--config', type=str, required=True, help="Path to config file")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(description="Train recommendation model")
+    # parser.add_argument('--config', type=str, required=True, help="Path to config file")
+    # args = parser.parse_args()
+    #
+    # process_config(args.config)
 
-    process_config(args.config)
 
 
+    with open('experiments-2_0/configs/_help/llm.yaml', 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
 
-    # with open('experiments-2_0/configs/_help/llm.yaml', 'r', encoding='utf-8') as f:
-    #     config = yaml.safe_load(f)
-
-    # train_model(config)
+    train_model(config)
+#python training.py --config experiments-2_0/configs/sasrec/beauty/BEAUTY_INITIAL/single_seed/mean-0.6-12-RMSE-2-0.1-True-False-True-attention-False-gemma__large_multiple-42.yaml

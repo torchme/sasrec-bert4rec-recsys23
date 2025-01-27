@@ -1,4 +1,4 @@
-seed: 42
+seed: 1
 
 model:
   model_name: SASRecLLM
@@ -16,7 +16,7 @@ model:
   weight_scale: 0.1
   use_down_scale: True
   use_upscale: False
-  multi_profile: True
+  multi_profile: False
   multi_profile_aggr_scheme: mean
 
 training:
@@ -30,13 +30,14 @@ training:
   fine_tune_epoch: 6  # Эпоха, после которой начинаем тонкую настройку
   scale_guide_loss: False   # или false
   save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
+
 data:
-  profile_train_sequences: data/processed/train_sequences.pkl
-  finetune_train_sequences: data/processed/train_sequences.pkl
-  valid_sequences: data/processed/valid_sequences.pkl
-  test_sequences: data/processed/test_sequences.pkl
-  mappings: data/processed/mappings.pkl
-  counts: data/processed/counts.pkl
-  user_profile_embeddings_files: ['data/emb/embedding_kion.json', 'data/emb/embedding_kion.json', 'data/emb/embedding_kion.json']  # Путь к эмбеддингам профилей пользователей
+  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
+  finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/counts.pkl
+  user_profile_embeddings_files: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/embedding_amazon_beauty-256.json
 
 experiment_name: "BEAUTY_INITIAL"
