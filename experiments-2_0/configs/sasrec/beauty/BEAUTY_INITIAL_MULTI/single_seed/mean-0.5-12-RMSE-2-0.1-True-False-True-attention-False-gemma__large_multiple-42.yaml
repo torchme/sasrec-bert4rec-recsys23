@@ -1,0 +1,43 @@
+seed: 42
+
+model:
+  model_name: SASRecLLM
+  item_num: 0  # Будет обновлено в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 256
+  num_blocks: 2
+  num_heads: 2
+  dropout_rate: 0.2
+  initializer_range: 0.02
+  add_head: true
+  reconstruction_layer: 2
+  weighting_scheme: mean
+  weight_scale: 0.1
+  use_down_scale: True
+  use_upscale: False
+  multi_profile: True
+  multi_profile_aggr_scheme: attention
+
+training:
+  batch_size: 256
+  epochs: 25
+  learning_rate: 0.0005
+  reconstruct_loss: RMSE
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.5  # Параметр для комбинированной функции потерь
+  fine_tune_epoch: 12  # Эпоха, после которой начинаем тонкую настройку
+  scale_guide_loss: False   # или false
+  save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
+
+data:
+  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
+  finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/counts.pkl
+  user_profile_embeddings_files: ['/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-several-e5-type-1-embs.json', '/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-several-e5-type-2-embs.json', '/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-several-e5-type-3-embs.json']
+
+experiment_name: "BEAUTY_INITIAL_MULTI"
