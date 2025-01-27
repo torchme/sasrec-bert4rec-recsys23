@@ -11,8 +11,8 @@ model:
   dropout_rate: 0.2
   initializer_range: 0.02
   add_head: true
-  reconstruction_layer: 1
-  weighting_scheme: mean
+  reconstruction_layer: 2
+  weighting_scheme: exponential
   weight_scale: 0.1
   use_down_scale: True
   use_upscale: False
@@ -26,7 +26,7 @@ training:
   reconstruct_loss: RMSE
   eval_every: 1
   model_dir: models/
-  alpha: 0.5  # Параметр для комбинированной функции потерь
+  alpha: 0.33  # Параметр для комбинированной функции потерь
   fine_tune_epoch: 12  # Эпоха, после которой начинаем тонкую настройку
   scale_guide_loss: True   # или false
   save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
