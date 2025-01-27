@@ -2,8 +2,9 @@ import os
 import argparse
 
 import mlflow
+import yaml
 
-from src.training import process_config
+from src.training_with_mix_of_profiles import process_config
 
 
 def process_files_in_range(folder_path, start, end):
@@ -25,7 +26,6 @@ def process_files_in_range(folder_path, start, end):
     # Process each file in the range
     for file in files_to_process:
         file_path = os.path.join(folder_path, file)
-
         if os.path.isfile(file_path):  # Check if it's a file
             print(f"Processing file: {file_path}")
             try:
