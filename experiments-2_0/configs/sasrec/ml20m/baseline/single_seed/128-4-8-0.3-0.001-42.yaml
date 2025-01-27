@@ -21,12 +21,12 @@ training:
   model_dir: models/
 
 data:
-  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/train_sequences.pkl
-  finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/train_sequences.pkl
-  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/valid_sequences.pkl
-  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/test_sequences.pkl
-  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/mappings.pkl
-  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml20m/processed/counts.pkl
+  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/train_sequences.pkl
+  finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/counts.pkl
   user_profile_embeddings_files: None
 
 experiment_name: "baseline"
