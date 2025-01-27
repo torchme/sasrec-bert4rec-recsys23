@@ -72,7 +72,7 @@ def train_model(config):
         tensor_zeros = torch.zeros((num_users, profile_emb_dim))
         user_profile_embeddings = torch.cat((tensor_zeros, user_profile_embeddings), dim=0)
 
-        tensor_false = torch.zeros((num_users, profile_emb_dim), dtype=torch.bool)
+        tensor_false = torch.zeros(num_users, dtype=torch.bool)
         null_profile_binary_mask = torch.cat((tensor_false, null_profile_binary_mask), dim=0)
 
         # Перемещаем эмбеддинги профилей пользователей на устройство
