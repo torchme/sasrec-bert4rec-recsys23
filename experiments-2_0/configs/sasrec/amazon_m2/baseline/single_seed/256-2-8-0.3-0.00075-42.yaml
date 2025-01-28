@@ -1,0 +1,32 @@
+# experiments/configs/sasrec.yaml
+
+seed: 42
+
+model:
+  model_name: SASRec
+  item_num: 0  # Значения будут обновлены в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 256
+  num_blocks: 2
+  num_heads: 8
+  dropout_rate: 0.3
+  add_head: true
+
+training:
+  batch_size: 256
+  epochs: 150
+  learning_rate: 0.00075
+  eval_every: 1
+  model_dir: models/
+
+data:
+  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon-m2/train_sequences.pkl
+  finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon-m2/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon-m2/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon-m2/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon-m2/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon-m2/counts.pkl
+  user_profile_embeddings_files: None
+
+experiment_name: "baseline"
