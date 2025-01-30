@@ -1,0 +1,43 @@
+seed: 42
+
+model:
+  model_name: SASRecLLM
+  item_num: 0  # Будет обновлено в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: 256
+  num_blocks: 2
+  num_heads: 8
+  dropout_rate: 0.3
+  initializer_range: 0.02
+  add_head: true
+  reconstruction_layer: 1
+  weighting_scheme: exponential
+  weight_scale: 0.1
+  use_down_scale: True
+  use_upscale: False
+  multi_profile: False
+  multi_profile_aggr_scheme: mean
+
+training:
+  batch_size: 256
+  epochs: 100
+  learning_rate: 0.001
+  reconstruct_loss: MSE
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.8  # Параметр для комбинированной функции потерь
+  fine_tune_epoch: 70  # Эпоха, после которой начинаем тонкую настройку
+  scale_guide_loss: True   # или false
+  save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
+
+data:
+  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/train_sequences.pkl
+  finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/train_sequences.pkl
+  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/valid_sequences.pkl
+  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/test_sequences.pkl
+  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/mappings.pkl
+  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/counts.pkl
+  user_profile_embeddings_files: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma-long-descriptions/gemma2-long-e5-embs-all.json
+
+experiment_name: "ML20M_INITIAL"
