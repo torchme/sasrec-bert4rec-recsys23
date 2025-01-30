@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output={artefact_path}/"result"%j.out
 #SBATCH --error={artefact_path}/"error"%j.out
-#SBATCH --constraint="type_a|type_b|type_c|type_e"
+#SBATCH --constraint="type_e"
 
 # Executable
 chmod +x experiments-2_0/bash/{model_name}/{dataset}/{experiment_name}/{seed_folder}/{bash_name}
