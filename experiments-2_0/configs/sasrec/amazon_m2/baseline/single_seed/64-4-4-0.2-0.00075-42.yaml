@@ -14,7 +14,7 @@ model:
   add_head: true
 
 training:
-  batch_size: 256
+  batch_size: 128
   epochs: 25
   learning_rate: 0.00075
   eval_every: 1

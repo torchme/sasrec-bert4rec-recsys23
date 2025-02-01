@@ -1,5 +1,5 @@
 #! /bin/bash
-#SBATCH --job-name="sasrec-amazon_m2-baseline-single_seed-60-71.sh"
+#SBATCH --job-name="sasrec-amazon_m2-baseline-single_seed-15-19.sh"
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=8
 #SBATCH --time=2-0:0
@@ -10,5 +10,5 @@
 #SBATCH --constraint="type_e"
 
 # Executable
-chmod +x experiments-2_0/bash/sasrec/amazon_m2/baseline/single_seed/60-71.sh
-srun experiments-2_0/bash/sasrec/amazon_m2/baseline/single_seed/60-71.sh
+chmod +x experiments-2_0/bash/sasrec/amazon_m2/baseline/single_seed/15-19.sh
+srun experiments-2_0/bash/sasrec/amazon_m2/baseline/single_seed/15-19.sh
