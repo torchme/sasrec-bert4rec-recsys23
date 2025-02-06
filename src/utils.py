@@ -27,7 +27,8 @@ def load_user_profile_embeddings(file_path, user_id_mapping):
     embedding_dim = len(next(iter(user_profiles_data.values())))
     # num_users = len(user_id_mapping)
     max_idx = max(user_id_mapping.values()) + 1  # Ensure list can accommodate the highest index
-    user_profiles_list = [None for _ in range(max_idx)]
+    print('Seq Stats:', max_idx, len(user_id_mapping))
+    user_profiles_list = [[0.0] * embedding_dim for _ in range(max_idx)]
     null_profile_binary_mask = [False for _ in range(max_idx)]
 
     not_found_profiles_cnt = 0
@@ -37,7 +38,7 @@ def load_user_profile_embeddings(file_path, user_id_mapping):
             user_profiles_list[idx] = embedding
         else:
             # Если эмбеддинг не найден, инициализируем нулями
-            user_profiles_list[idx] = [0.0] * embedding_dim
+            # user_profiles_list[idx] = [0.0] * embedding_dim
             null_profile_binary_mask[idx] = True
     print(f"Number of users without profiles: {not_found_profiles_cnt}")
 
