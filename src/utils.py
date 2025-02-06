@@ -25,9 +25,10 @@ def load_user_profile_embeddings(file_path, user_id_mapping):
         user_profiles_data = json.load(f)
 
     embedding_dim = len(next(iter(user_profiles_data.values())))
-    num_users = len(user_id_mapping)
-    user_profiles_list = [None for _ in range(num_users)]
-    null_profile_binary_mask = [False for _ in range(num_users)]
+    # num_users = len(user_id_mapping)
+    max_idx = max(user_id_mapping.values()) + 1  # Ensure list can accommodate the highest index
+    user_profiles_list = [None for _ in range(max_idx)]
+    null_profile_binary_mask = [False for _ in range(max_idx)]
 
     not_found_profiles_cnt = 0
     for original_id, idx in user_id_mapping.items():
