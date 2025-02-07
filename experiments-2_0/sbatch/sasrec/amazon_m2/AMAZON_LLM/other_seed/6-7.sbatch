@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=results/sasrec/amazon_m2/AMAZON_LLM/other_seed/"result"%j.out
 #SBATCH --error=results/sasrec/amazon_m2/AMAZON_LLM/other_seed/"error"%j.out
-#SBATCH --constraint="type_a|type_b|type_c|type_e"
+#SBATCH --constraint="type_e"
 
 # Executable
 chmod +x experiments-2_0/bash/sasrec/amazon_m2/AMAZON_LLM/other_seed/6-7.sh
