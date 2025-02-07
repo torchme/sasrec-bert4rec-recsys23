@@ -2,7 +2,7 @@
 #SBATCH --job-name="sasrec-amazon_m2-AMAZON_LLM-other_seed-6-7.sh"
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=1-10:0
+#SBATCH --time=0-20:0
 #SBATCH --mail-user=nseverin@hse.ru
 #SBATCH --mail-type=ALL
 #SBATCH --output=results/sasrec/amazon_m2/AMAZON_LLM/other_seed/"result"%j.out
