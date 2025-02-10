@@ -171,11 +171,12 @@ def train_model(config):
                         loss = loss_model
                 else:
                     # Если scale_guide_loss=False, логика остаётся исходной
-                    total_guide_loss += loss_guide.item()
                     if epoch < fine_tune_epoch:
                         loss = alpha * loss_guide + (1 - alpha) * loss_model
                     else:
                         loss = loss_model
+
+                total_guide_loss += loss_guide.item()
 
             else:
                 # Для SASRec получаем только outputs
