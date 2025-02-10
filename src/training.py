@@ -164,7 +164,7 @@ def train_model(config):
 
                     scale_for_guide = loss_model_val / (loss_guide_val + eps)
                     scaled_loss_guide = loss_guide * scale_for_guide
-                    total_guide_loss += scaled_loss_guide.item()
+                    # total_guide_loss += scaled_loss_guide.item()
                     if epoch < fine_tune_epoch:
                         loss = alpha * scaled_loss_guide + (1 - alpha) * loss_model
                     else:

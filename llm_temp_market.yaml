@@ -1,0 +1,43 @@
+seed: {seed}
+
+model:
+  model_name: SASRecLLM
+  item_num: 0  # Будет обновлено в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: {hidden_units}
+  num_blocks: {num_blocks}
+  num_heads: {num_heads}
+  dropout_rate: {dropout_rate}
+  initializer_range: 0.02
+  add_head: true
+  reconstruction_layer: -1
+  weighting_scheme: exponential
+  weight_scale: 0.1
+  use_down_scale: True
+  use_upscale: False
+  multi_profile: False
+  multi_profile_aggr_scheme: mean
+
+training:
+  batch_size: 256
+  epochs: {epochs}
+  learning_rate: {learning_rate}
+  reconstruct_loss: RMSE
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.8  # Параметр для комбинированной функции потерь
+  fine_tune_epoch: {fine_tune_epoch}  # Эпоха, после которой начинаем тонкую настройку
+  scale_guide_loss: True
+  save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
+
+data:
+  profile_train_sequences: {profile_train_sequences}
+  finetune_train_sequences: {finetune_train_sequences}
+  valid_sequences: {valid_sequences}
+  test_sequences: {test_sequences}
+  mappings: {mappings}
+  counts: {counts}
+  user_profile_embeddings_files: {user_profile_embeddings_files}
+
+experiment_name: "{experiment_name}"
