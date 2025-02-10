@@ -49,6 +49,11 @@ class SimpleAttentionAggregator(nn.Module):
         return weighted_sum
 
 
+def last_item_weightening(hidden_states):
+    """hidden_states: [batch_size, seq_len, hidden_size]"""
+    return hidden_states[:, -1, :]
+
+
 # class NGNNAggregator(nn.Module):
 #     def __init__(self, in_features, out_features, alpha=0.2):
 #         super(NGNNAggregator, self).__init__()

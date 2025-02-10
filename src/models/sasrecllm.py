@@ -3,7 +3,8 @@
 import torch
 import torch.nn as nn
 from src.models.sasrec import SASRec
-from src.models.utils import mean_weightening, exponential_weightening, SimpleAttentionAggregator
+from src.models.utils import mean_weightening, exponential_weightening, SimpleAttentionAggregator, last_item_weightening
+
 
 class SASRecLLM(SASRec):
     def __init__(
@@ -32,6 +33,9 @@ class SASRecLLM(SASRec):
             self.weighting_kwargs = {'weight_scale': weight_scale}
         elif weighting_scheme == 'attention':
             self.weighting_fn = SimpleAttentionAggregator(self.hidden_units)
+            self.weighting_kwargs = {}
+        elif weighting_scheme == 'last_item':
+            self.weighting_fn = last_item_weightening
             self.weighting_kwargs = {}
         else:
             raise NotImplementedError(f'No such weighting_scheme {weighting_scheme} exists')

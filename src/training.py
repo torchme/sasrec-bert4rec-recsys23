@@ -129,6 +129,8 @@ def train_model(config):
     for epoch in range(1, epochs + 1):
         model.train()
         total_loss = 0
+        total_guide_loss = 0
+        total_recsys_loss = 0
         # c = 0
 
         print('Len of train loader:', len(train_loader))
@@ -162,12 +164,14 @@ def train_model(config):
 
                     scale_for_guide = loss_model_val / (loss_guide_val + eps)
                     scaled_loss_guide = loss_guide * scale_for_guide
+                    total_guide_loss += scaled_loss_guide.item()
                     if epoch < fine_tune_epoch:
                         loss = alpha * scaled_loss_guide + (1 - alpha) * loss_model
                     else:
                         loss = loss_model
                 else:
                     # Если scale_guide_loss=False, логика остаётся исходной
+                    total_guide_loss += loss_guide.item()
                     if epoch < fine_tune_epoch:
                         loss = alpha * loss_guide + (1 - alpha) * loss_model
                     else:
@@ -186,13 +190,17 @@ def train_model(config):
             optimizer.step()
 
             total_loss += loss.item()
+            total_recsys_loss += loss_model.item()
 
             # c += 1
             # if c == 1:
             #     break
 
         avg_loss = total_loss / len(train_loader)
-        print(f"Epoch {epoch}/{config['training']['epochs']}, Loss: {avg_loss:.4f}")
+        avg_guide_loss = total_guide_loss / len(train_loader)
+        avg_recsys_loss = total_recsys_loss / len(train_loader)
+        print(f"Epoch: {epoch}/{config['training']['epochs']} | Train Total Loss: {avg_loss:.4f} "
+              f" | Recsys Total Loss | {avg_recsys_loss:.4f} | Guide Total Loss | {avg_guide_loss:.4f}")
 
         # Сохраняем чекпоинт
         if save_checkpoints:
@@ -202,6 +210,8 @@ def train_model(config):
 
         # Логирование метрик в MLflow
         mlflow.log_metric('train_loss', avg_loss, step=epoch)
+        mlflow.log_metric('train_guide_loss', avg_guide_loss, step=epoch)
+        mlflow.log_metric('train_recsys_loss', avg_recsys_loss, step=epoch)
 
         # Оценка на валидационном наборе
         if epoch % config['training']['eval_every'] == 0:
