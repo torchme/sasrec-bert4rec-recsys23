@@ -155,8 +155,11 @@ def calculate_guide_loss(model,
 
     # pass
     user_profile_emb_transformed = model.aggregate_profile(user_profile_emb)
-    if model.use_upscale:
-        hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
+    try:
+        if model.use_upscale:
+            hidden_for_reconstruction = model.hidden_layer_transform(hidden_for_reconstruction)
+    except:
+        pass
 
     user_profile_emb_transformed[null_profile_binary_mask_batch] = \
         hidden_for_reconstruction[null_profile_binary_mask_batch]
