@@ -116,6 +116,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from src.models.utils import mean_weightening
+
+
 class PointWiseFeedForward(nn.Module):
     def __init__(self, hidden_units, dropout_rate):
         super(PointWiseFeedForward, self).__init__()
@@ -230,13 +233,14 @@ class SASRec(nn.Module):
             seqs *= ~timeline_mask.unsqueeze(-1)
 
         outputs = self.last_layernorm(seqs)
+        reconstruction_input = mean_weightening(outputs)
 
         if self.add_head:
             outputs = torch.matmul(
                 outputs, self.item_emb.weight.transpose(0, 1)
             )
 
-        return outputs, None
+        return outputs, reconstruction_input
 
     def aggregate_profile(self, user_profile_emb):
         """
