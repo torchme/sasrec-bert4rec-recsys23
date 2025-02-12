@@ -237,3 +237,15 @@ class SASRec(nn.Module):
             )
 
         return outputs, None
+
+    def aggregate_profile(self, user_profile_emb):
+        """
+        user_profile_emb: [batch_size, emb_dim]  или  [batch_size, K, emb_dim]
+        Возвращает: [batch_size, hidden_units] (если use_down_scale=True) либо [batch_size, emb_dim].
+        """
+        if user_profile_emb is None:
+            return None
+
+        if user_profile_emb.dim() == 2:
+            return user_profile_emb.detach().clone()
+        raise Exception('aggregate_profile: Not Implemented error')
