@@ -184,6 +184,7 @@ class SASRec(nn.Module):
 
         # Инициализация параметров
         self.apply(self._init_weights)
+        self.profile_transform = nn.Linear(128, self.hidden_units)
 
     def _init_weights(self, module):
         if isinstance(module, (nn.Linear, nn.Conv1d)):
@@ -251,5 +252,5 @@ class SASRec(nn.Module):
             return None
 
         if user_profile_emb.dim() == 2:
-            return user_profile_emb.detach().clone()
+            return self.profile_transform(user_profile_emb)
         raise Exception('aggregate_profile: Not Implemented error')

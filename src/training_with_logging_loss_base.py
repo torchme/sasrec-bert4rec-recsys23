@@ -114,8 +114,11 @@ def train_model(config):
     train_loader = profile_train_loader
 
     # Цикл обучения
-    for epoch in range(1, epochs + 1):
-        model.train()
+    for epoch in range(0, epochs + 1):
+        if epochs == 0:
+            model.eval()
+        else:
+            model.train()
         total_loss = 0
         total_guide_loss = 0
         total_recsys_loss = 0
@@ -147,10 +150,12 @@ def train_model(config):
             loss = loss_model
 
             # Шаги оптимизации
-            optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
-            optimizer.step()
+            if epochs != 0:
+                model.eval()
+                optimizer.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+                optimizer.step()
 
             total_loss += loss.item()
             total_recsys_loss += loss_model.item()
