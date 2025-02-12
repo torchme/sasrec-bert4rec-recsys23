@@ -11,7 +11,7 @@ model:
   dropout_rate: 0.2
   initializer_range: 0.02
   add_head: true
-  reconstruction_layer: 4
+  reconstruction_layer: -1
   weighting_scheme: exponential
   weight_scale: 0.1
   use_down_scale: True
