@@ -1,6 +1,8 @@
 # src/training.py
 
 import os
+import time
+
 import yaml
 import pickle
 import numpy as np
@@ -127,6 +129,7 @@ def train_model(config):
 
     # Цикл обучения
     for epoch in range(1, epochs + 1):
+        start_time = time.time()
         model.train()
         total_loss = 0
         total_guide_loss = 0
@@ -202,6 +205,7 @@ def train_model(config):
         avg_recsys_loss = total_recsys_loss / len(train_loader)
         print(f"Epoch: {epoch}/{config['training']['epochs']} | Train Total Loss: {avg_loss:.4f} "
               f" | Recsys Total Loss | {avg_recsys_loss:.4f} | Guide Total Loss | {avg_guide_loss:.4f}")
+        print('Train Time taken (s):', time.time() - start_time)
 
         # Сохраняем чекпоинт
         if save_checkpoints:
@@ -225,8 +229,10 @@ def train_model(config):
                 sanitized_metric_name = metric_name.replace('@', '_')
                 mlflow.log_metric(f'val_{sanitized_metric_name}', metric_value, step=epoch)
 
+            start_time = time.time()
             test_metrics = evaluate_model(model, test_loader, device, mode='test')
             print(f"Test Metrics: {test_metrics}")
+            print('Test Time taken (s):', time.time() - start_time)
             # Логирование метрик с заменой недопустимых символов
             for metric_name, metric_value in test_metrics.items():
                 sanitized_metric_name = metric_name.replace('@', '_')
