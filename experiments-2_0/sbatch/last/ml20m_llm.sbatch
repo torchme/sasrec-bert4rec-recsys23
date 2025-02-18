@@ -10,5 +10,5 @@
 #SBATCH --constraint="type_a|type_b|type_c"
 
 # Executable
-chmod +x experiments/bash/sasrec/last/ml20m_llm.sh
-srun experiments/bash/sasrec/last/ml20m_llm.sh
+chmod +x experiments-2_0/bash/sasrec/last/ml20m_llm.sh
+srun experiments-2_0/bash/sasrec/last/ml20m_llm.sh
