@@ -27,6 +27,6 @@ data:
   test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/test_sequences.pkl
   mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/mappings.pkl
   counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/processed/counts.pkl
-  user_profile_embeddings_files: {user_profile_embeddings_files}
+  user_profile_embeddings_files: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/short_descriptions/gemma-short-e5-embs-all-64.json
 
 experiment_name: "baseline_final_loss"

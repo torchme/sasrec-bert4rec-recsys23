@@ -27,6 +27,6 @@ data:
   test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/test_sequences.pkl
   mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/mappings.pkl
   counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/processed/counts.pkl
-  user_profile_embeddings_files: {user_profile_embeddings_files}
+  user_profile_embeddings_files: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/short_descriptions/ml-20m-gemma-short-e5-all-256.json
 
 experiment_name: "baseline_final_loss"
