@@ -6,9 +6,13 @@ def main(old_train_path, old_mapping_path, new_mapping_path, new_train_path):
     user_id2item_id = pd.read_pickle(old_train_path)
     print('Sequences', len(user_id2item_id))
     real_id2old_id = pd.read_pickle(old_mapping_path)
-    print(real_id2old_id)
+    if isinstance(real_id2old_id, tuple) and len(real_id2old_id) == 1:
+        real_id2old_id = real_id2old_id[0]
     old_id2real_id = {v: k for k, v in real_id2old_id.items()}
+
     real_id2new_id = pd.read_pickle(new_mapping_path)
+    if isinstance(real_id2new_id, tuple) and len(real_id2new_id) == 1:
+        real_id2new_id = real_id2new_id[0]
 
     for user_id in user_id2item_id:
         user_id2item_id[user_id] = [real_id2new_id[old_id2real_id[x]] for x in user_id2item_id[user_id]]
