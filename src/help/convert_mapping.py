@@ -4,7 +4,9 @@ import argparse
 
 def main(old_train_path, old_mapping_path, new_mapping_path, new_train_path):
     user_id2item_id = pd.read_pickle(old_train_path)
+    print('Sequences', len(user_id2item_id))
     real_id2old_id = pd.read_pickle(old_mapping_path)
+    print(real_id2old_id)
     old_id2real_id = {v: k for k, v in real_id2old_id.items()}
     real_id2new_id = pd.read_pickle(new_mapping_path)
 
