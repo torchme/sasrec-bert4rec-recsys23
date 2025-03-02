@@ -1,6 +1,6 @@
 {
   "beauty_short_giga": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gigachat-max-short-e5-embs.jsonn",
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gigachat-max-short-e5-embs.json",
     "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gigachat-max-short-e5-embs-128.json",
     "n_components": 128,
     "reducer": "UMAP"
