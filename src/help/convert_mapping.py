@@ -15,10 +15,10 @@ def main(old_train_path, old_mapping_path, new_mapping_path, new_train_path):
 
     res = {}
     for user_id in user_id2item_id:
-        user_id2item_id[user_real_id2new_id[user_old_id2real_id[user_id]]] = \
+        res[user_real_id2new_id[user_old_id2real_id[user_id]]] = \
             [item_real_id2new_id[item_old_id2real_id[x]] for x in user_id2item_id[user_id]]
 
-    pd.to_pickle(user_id2item_id, new_train_path)
+    pd.to_pickle(res, new_train_path)
 
 
 if __name__ == '__main__':
