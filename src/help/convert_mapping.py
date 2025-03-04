@@ -4,18 +4,19 @@ import argparse
 
 def main(old_train_path, old_mapping_path, new_mapping_path, new_train_path):
     user_id2item_id = pd.read_pickle(old_train_path)
-    print('Sequences', len(user_id2item_id))
+    # print('Sequences', len(user_id2item_id))
     real_id2old_id = pd.read_pickle(old_mapping_path)
-    if isinstance(real_id2old_id, tuple) and len(real_id2old_id) == 1:
-        real_id2old_id = real_id2old_id[0]
-    old_id2real_id = {v: k for k, v in real_id2old_id.items()}
+    user_real_id2old_id, item_real_id2old_id = real_id2old_id[0], real_id2old_id[1]
+    user_old_id2real_id = {v: k for k, v in user_real_id2old_id.items()}
+    item_old_id2real_id = {v: k for k, v in item_real_id2old_id.items()}
 
     real_id2new_id = pd.read_pickle(new_mapping_path)
-    if isinstance(real_id2new_id, tuple) and len(real_id2new_id) == 1:
-        real_id2new_id = real_id2new_id[0]
+    user_real_id2new_id, item_real_id2new_id = real_id2new_id[0], real_id2new_id[1]
 
+    res = {}
     for user_id in user_id2item_id:
-        user_id2item_id[user_id] = [real_id2new_id[old_id2real_id[x]] for x in user_id2item_id[user_id]]
+        user_id2item_id[user_real_id2new_id[user_old_id2real_id[user_id]]] = \
+            [item_real_id2new_id[item_old_id2real_id[x]] for x in user_id2item_id[user_id]]
 
     pd.to_pickle(user_id2item_id, new_train_path)
 
