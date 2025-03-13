@@ -32,12 +32,12 @@ training:
   save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
 
 data:
-  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed_splits/train_1_70_sequences_normal.pkl
+  profile_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/valid_matched_70_30/train_1_70_sequences_normal.pkl
   finetune_train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed_splits/train_sequences.pkl
   valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed_splits/valid_sequences.pkl
   test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed_splits/test_sequences.pkl
   mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/mappings.pkl
   counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/counts.pkl
-  user_profile_embeddings_files: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/train-1-70-descriptions/gemma2-short-e5-embs-128.json
+  user_profile_embeddings_files: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-70-e5-embs-128.json
 
 experiment_name: "BEAUTY_history_70_30"

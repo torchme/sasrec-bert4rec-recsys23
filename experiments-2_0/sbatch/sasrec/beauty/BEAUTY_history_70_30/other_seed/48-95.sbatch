@@ -2,7 +2,7 @@
 #SBATCH --job-name="sasrec-beauty-BEAUTY_history_70_30-other_seed-48-95.sh"
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=8
-#SBATCH --time=1-12:0
+#SBATCH --time=0-8:0
 #SBATCH --mail-user=nseverin@hse.ru
 #SBATCH --mail-type=ALL
 #SBATCH --output=results/sasrec/beauty/BEAUTY_history_70_30/other_seed/"result"%j.out
