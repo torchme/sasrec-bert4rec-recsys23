@@ -1,7 +1,13 @@
 {
-  "giga_long_large_single": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gigamax-short-ru-e5-embs-1.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gigamax-short-ru-e5-embs-1-256.json",
+  "cold_items": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma-short-cold-items-descriptions/gemma2-short-cold-items-e5-embs-all.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma-short-cold-items-descriptions/gemma2-short-cold-items-e5-embs-all-256.json",
+    "n_components": 256,
+    "reducer": "UMAP"
+  },
+  "cold_users": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma-cold-short-descriptions/gemma2-cold-short-e5-embs-all.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma-cold-short-descriptions/gemma2-cold-short-e5-embs-all-256.json",
     "n_components": 256,
     "reducer": "UMAP"
   }

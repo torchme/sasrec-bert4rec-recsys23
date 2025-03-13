@@ -1,37 +1,25 @@
 {
-  "beauty_short_giga": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gigachat-max-short-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gigachat-max-short-e5-embs-128.json",
-    "n_components": 128,
-    "reducer": "UMAP"
-  },
-  "cold_items": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-short-cold-items-descriptions/gemma2-short-cold-items-e5-embs-all.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-short-cold-items-descriptions/gemma2-short-cold-items-e5-embs-all-128.json",
-    "n_components": 128,
-    "reducer": "UMAP"
-  },
-  "cold_users": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-cold-short-descriptions/gemmas-cold-short-e5-embs-all.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma-cold-short-descriptions/gemmas-cold-short-e5-embs-all-128.json",
-    "n_components": 128,
-    "reducer": "UMAP"
-  },
   "30-70": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/train-1-30-descriptions/gemma2-short-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/train-1-30-descriptions/gemma2-short-e5-embs-128.json",
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-30-e5-embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-30-e5-embs-128.json",
     "n_components": 128,
     "reducer": "UMAP"
   },
   "50-50": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/train-1-50-descriptions/gemma2-short-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/train-1-50-descriptions/gemma2-short-e5-embs-128.json",
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-50-e5-embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-50-e5-embs-128.json",
     "n_components": 128,
     "reducer": "UMAP"
   },
   "70-30": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/train-1-70-descriptions/gemma2-short-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/train-1-70-descriptions/gemma2-short-e5-embs-128.json",
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-70-e5-embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-70-e5-embs-128.json",
+    "n_components": 128,
+    "reducer": "UMAP"
+  },
+  "80-20": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-80-e5-embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/gemma2-short-train-80-e5-embs-128.json",
     "n_components": 128,
     "reducer": "UMAP"
   }
