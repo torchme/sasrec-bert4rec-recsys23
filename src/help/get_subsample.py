@@ -8,9 +8,9 @@ with open(FPATH_DATA, 'r') as f:
     user_profiles_data = json.load(f)
 
 with open(FPATH_ID, 'r') as f:
-    user_keys = json.load(f).keys()
+    user_keys = set(json.load(f).keys())
 
-result = {k:v for k,v in user_profiles_data.items()}
+result = {k:v for k,v in user_profiles_data.items() if k in user_keys}
 
-with open(FPATH_ID, 'w') as f:
+with open(FPATH_SAVE, 'w') as f:
     json.dump(result, f)
