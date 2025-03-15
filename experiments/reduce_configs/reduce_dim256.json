@@ -1,13 +1,13 @@
 {
-  "30_70": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-30-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-30-e5-embs-256.json",
+  "70_30": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-70-e5-embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-70-e5-embs-256.json",
     "n_components": 256,
     "reducer": "UMAP"
   },
-  "50_50": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-50-e5-embs.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-50-e5-embs-256.json",
+  "80_20": {
+    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-80-e5-embs.json",
+    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/ml-20m/gemma2-short-train-80-e5-embs-256.json",
     "n_components": 256,
     "reducer": "UMAP"
   }
