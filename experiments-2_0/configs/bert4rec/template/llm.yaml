@@ -1,0 +1,43 @@
+seed: {seed}
+
+model:
+  model_name: BERT4RecLLM
+  item_num: 0  # Будет обновлено в коде
+  user_num: 0
+  maxlen: 50
+  hidden_units: {hidden_units}
+  num_blocks: {num_blocks}
+  num_heads: {num_heads}
+  dropout_rate: {dropout_rate}
+  initializer_range: 0.02
+  add_head: true
+  reconstruction_layer: {reconstruction_layer}
+  weighting_scheme: {weighting_scheme}
+  weight_scale: {weight_scale}
+  use_down_scale: {use_down_scale}
+  use_upscale: {use_upscale}
+  multi_profile: {multi_profile}
+  multi_profile_aggr_scheme: {multi_profile_aggr_scheme}
+
+training:
+  batch_size: 256
+  epochs: {epochs}
+  learning_rate: {learning_rate}
+  reconstruct_loss: {reconstruct_loss}
+  eval_every: 1
+  model_dir: models/
+  alpha: {alpha}  # Параметр для комбинированной функции потерь
+  fine_tune_epoch: {fine_tune_epoch}  # Эпоха, после которой начинаем тонкую настройку
+  scale_guide_loss: {scale_guide_loss}   # или false
+  save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
+
+data:
+  profile_train_sequences: {profile_train_sequences}
+  finetune_train_sequences: {finetune_train_sequences}
+  valid_sequences: {valid_sequences}
+  test_sequences: {test_sequences}
+  mappings: {mappings}
+  counts: {counts}
+  user_profile_embeddings_files: {user_profile_embeddings_files}
+
+experiment_name: "{experiment_name}"
