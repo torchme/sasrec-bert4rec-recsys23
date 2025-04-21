@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=results/bert4rec/amazon_m2/baseline/other_seed/"result"%j.out
 #SBATCH --error=results/bert4rec/amazon_m2/baseline/other_seed/"error"%j.out
-#SBATCH --constraint="type_a|type_b|type_c|type_e"
+#SBATCH --constraint="type_e"
 
 # Executable
 chmod +x experiments-2_0/bash/bert4rec/amazon_m2/baseline/other_seed/2-3.sh
