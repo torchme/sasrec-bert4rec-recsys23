@@ -1,0 +1,32 @@
+seed: 42
+
+model:
+  model_name: BERT4RecLLM # BERT4Rec for vanilla BERT4Rec
+  item_num: 0
+  user_num: 0
+  maxlen: 50
+  hidden_units: 128
+  num_blocks: 2 # I would experiment with =2, =4 for vanilla BERT4Rec
+  num_heads: 2
+  dropout_rate: 0.2
+  initializer_range: 0.02
+  add_head: true
+  reconstruction_layer: 1  # for num_blocks=4 it should be 3
+  weighting_scheme: exponential
+  weight_scale: 0.1
+  use_down_scale: True
+  use_upscale: False
+  multi_profile: False
+  multi_profile_aggr_scheme: mean
+
+training:
+  batch_size: 256
+  epochs: 100
+  learning_rate: 0.0005
+  reconstruct_loss: MSE
+  eval_every: 1
+  model_dir: models/
+  alpha: 0.8
+  fine_tune_epoch: 25
+  scale_guide_loss: False   # also try with True and alpha = 0.4
+  save_checkpoints: false
