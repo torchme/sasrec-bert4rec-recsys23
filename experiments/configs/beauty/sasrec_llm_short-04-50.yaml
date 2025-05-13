@@ -1,7 +1,7 @@
 seed: 42
 
 model:
-  model_name: SASRecLLM
+  model_name: BERT4RecLLM # SASRecLLM #
   item_num: 0  # Будет обновлено в коде
   user_num: 0
   maxlen: 50
@@ -12,22 +12,26 @@ model:
   initializer_range: 0.02
   add_head: True
   reconstruction_layer: -1  # Используем последний слой для реконструкции
+  weighting_scheme: mean
+  use_down_scale: true
+  use_upscale: false
 
 training:
-  batch_size: 256
-  epochs: 50
+  batch_size: 64
+  epochs: 1
   learning_rate: 0.0001
   eval_every: 1
   model_dir: models/
   alpha: 0.4  # Параметр для комбинированной функции потерь
-  fine_tune_epoch: 50  # Эпоха, после которой начинаем тонкую настройку
+  fine_tune_epoch: 1  # Эпоха, после которой начинаем тонкую настройку
+  reconstruct_loss: MSE
 
 data:
-  train_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/train_sequences.pkl
-  valid_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/valid_sequences.pkl
-  test_sequences: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/test_sequences.pkl
-  mappings: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/mappings.pkl
-  counts: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/processed/counts.pkl
-  user_profile_embeddings_path: /home/nseverin/generate_user_profiles/recsys-user-profiles/data/amazon_beauty/short_embedding_amazon_beauty.json  # Путь к эмбеддингам профилей пользователей
+  train_sequences: /home/danya/sasrec-bert4rec-recsys23/data/raw/amazon_beauty/train_sequences.pkl
+  valid_sequences: /home/danya/sasrec-bert4rec-recsys23/data/raw/amazon_beauty/valid_sequences.pkl
+  test_sequences: /home/danya/sasrec-bert4rec-recsys23/data/raw/amazon_beauty/test_sequences.pkl
+  mappings: /home/danya/sasrec-bert4rec-recsys23/data/raw/amazon_beauty/mappings.pkl
+  counts: /home/danya/sasrec-bert4rec-recsys23/data/raw/amazon_beauty/counts.pkl
+  user_profile_embeddings_path: /home/danya/sasrec-bert4rec-recsys23/data/raw/amazon_beauty/short_embedding_amazon_beauty_UMAP-128.json
 
-experiment_name: "SASRecLLM Beauty Experiment"
+experiment_name: "SASRecLLM Beauty Experiment - UMAP-128"

@@ -22,7 +22,6 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
     ndcgs = {k: 0 for k in k_list}
 
     with torch.no_grad():
-        # c = 0
         for batch in data_loader:
             input_seq, target_seq, user_ids = batch
             input_seq = input_seq.to(device)
@@ -70,19 +69,12 @@ def evaluate_model(model, data_loader, device, mode='validation', k_list=[5, 10,
                 ndcg_k = (1 / torch.log2(ranks.float() + 1)).sum().item() if ranks.numel() > 0 else 0.0
 
                 # Добавляем метрики для текущего k
-                # recalls[k] += (recall_k)
                 ndcgs[k] += ndcg_k
-            # c += 1
-            # if c == 3:
-            #     break
+
     # Вычисляем средние значения метрик по всем батчам
     metrics = {}
     for k in k_list:
-        # metrics[f'Recall@{k}'] = np.mean(recalls[k])
-        # metrics[f'NDCG@{k}'] = np.mean(ndcgs[k])
-        # metrics[f'fIsIn{k}'] = np.mean(is_in_k[k])
         metrics[f'Recall@{k}'] = (recalls[k] / len(data_loader.dataset))
         metrics[f'NDCG@{k}'] = (ndcgs[k] / len(data_loader.dataset))
-        # metrics[f'fIsIn{k}'] = (is_in_k[k]/len(data_loader))
 
     return metrics
