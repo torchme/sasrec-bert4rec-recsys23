@@ -1,10 +1,4 @@
 {
-  "gemma_long_large_single": {
-    "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/gemma-long-e5-embs-all.json",
-    "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/gemma-long-e5-embs-all-64.json",
-    "n_components": 64,
-    "reducer": "UMAP"
-  },
   "gemma_short_large_single": {
     "embeddings_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/short_descriptions/gemma-short-e5-embs-all.json",
     "save_path": "/home/nseverin/generate_user_profiles/recsys-user-profiles/data/kion_en/short_descriptions/gemma-short-e5-embs-all-64.json",
