@@ -21,6 +21,7 @@ class BERT4RecLLM(BERT4Rec):
         num_layers,
         dropout_rate,
         reconstruction_layer=-1,
+        mask_token=None,
         add_head=True,
         multi_profile=False,  # <-- добавим флаг для много-профильного сценария
         multi_profile_aggr_scheme = 'mean',
@@ -35,6 +36,7 @@ class BERT4RecLLM(BERT4Rec):
             num_heads=num_heads,
             num_layers=num_layers,
             dropout_rate=dropout_rate,
+            mask_token=mask_token,
             add_head=add_head
         )
 
@@ -106,11 +108,12 @@ class BERT4RecLLM(BERT4Rec):
                                              *self.multi_profile_weighting_kwargs)  # => [bsz, emb_dim_now])
         return aggregated
 
-    def forward(self, input_seq, user_profile_emb=None, return_hidden_states=False):
+    def forward(self, input_seq, user_profile_emb=None, attention_mask=None, return_hidden_states=False):
         """
         Args:
             input_seq: [batch_size, seq_len]
             user_profile_emb: [batch_size, emb_dim] или [batch_size, K, emb_dim]
+            attention_mask (torch.Tensor): Маска внимания [batch_size, seq_len].
         """
         # 1) Сначала можем агрегировать профили, если нужно.
         # user_profile_emb_agg = self.aggregate_profile(user_profile_emb)
@@ -122,7 +125,10 @@ class BERT4RecLLM(BERT4Rec):
         #   - Или вообще использовать в лоссе отдельно.
 
         # 2) Прямой проход BERT
-        attention_mask = (input_seq != 0).long()  # [batch_size, seq_len]
+        # Если маска внимания не предоставлена, создаем её
+        if attention_mask is None:
+            attention_mask = (input_seq != 0).long()  # [batch_size, seq_len]
+
         outputs = self.bert(
             input_ids=input_seq,
             attention_mask=attention_mask,
@@ -132,7 +138,7 @@ class BERT4RecLLM(BERT4Rec):
 
         # 3) Логиты или фичи
         if self.add_head:
-            logits = self.out(sequence_output)  # [batch_size, seq_len, item_num+1]
+            logits = self.out(sequence_output)  # [batch_size, seq_len, vocab_size]
         else:
             logits = sequence_output  # [batch_size, seq_len, hidden_units]
 
@@ -146,7 +152,6 @@ class BERT4RecLLM(BERT4Rec):
 
         # 5) Агрегация (mean/attention) item-секвенции => reconstruction_input
         #    (не путайте с user_profile_emb)
-        reconstruction_input = self.weighting_fn(selected_hidden_state, **self.weighting_kwargs)
-        # => [batch_size, hidden_units]
+        reconstruction_input = self.weighting_fn(selected_hidden_state, **self.weighting_kwargs) # => [batch_size, hidden_units]
 
         return logits, reconstruction_input

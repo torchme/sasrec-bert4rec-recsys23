@@ -16,8 +16,8 @@ from src.models.sasrec import SASRec
 from src.models.sasrecllm import SASRecLLM
 from src.utils import set_seed, load_user_profile_embeddings, init_criterion_reconstruct, \
     load_user_profile_embeddings_any, calculate_recsys_loss, calculate_guide_loss
-from src.dataset import SequenceDataset
-from src.evaluation import evaluate_model
+from src.dataset import SequenceDataset, BERT4RecDataset
+from src.evaluation import evaluate_model, evaluate_bert4rec_model
 import mlflow
 from tqdm import tqdm
 
@@ -70,10 +70,44 @@ def train_model(config):
         null_profile_binary_mask = None
         profile_emb_dim = None
 
-    # Создание датасетов
-    profile_train_dataset = SequenceDataset(profile_train_sequences, config['model']['maxlen'])
-    valid_dataset = SequenceDataset(valid_sequences, config['model']['maxlen'])
-    test_dataset = SequenceDataset(test_sequences, config['model']['maxlen'])
+    # Создание датасетов в зависимости от модели
+    if model_name in ['BERT4Rec', 'BERT4RecLLM']:
+        # Для BERT4Rec используем специальный датасет с маскированием
+        mask_token = num_items + 1  # Маска будет иметь ID, равный num_items + 1
+
+        profile_train_dataset = BERT4RecDataset(
+            profile_train_sequences,
+            config['model']['maxlen'],
+            mask_token,
+            num_items,
+            mask_prob=config['training'].get('mask_prob', 0.15),
+            mode='train'
+        )
+
+        valid_dataset = BERT4RecDataset(
+            valid_sequences,
+            config['model']['maxlen'],
+            mask_token,
+            num_items,
+            mode='valid'
+        )
+
+        test_dataset = BERT4RecDataset(
+            test_sequences,
+            config['model']['maxlen'],
+            mask_token,
+            num_items,
+            mode='test'
+        )
+
+        # Обновляем конфигурацию модели, чтобы учесть маскирующий токен
+        config['model']['mask_token'] = mask_token
+        config['model']['vocab_size'] = num_items + 2  # +1 для padding, +1 для mask
+    else:
+        # Для SASRec используем стандартный датасет
+        profile_train_dataset = SequenceDataset(profile_train_sequences, config['model']['maxlen'])
+        valid_dataset = SequenceDataset(valid_sequences, config['model']['maxlen'])
+        test_dataset = SequenceDataset(test_sequences, config['model']['maxlen'])
 
     # Создание DataLoader
     profile_train_loader = DataLoader(profile_train_dataset, batch_size=config['training']['batch_size'], shuffle=True)
@@ -94,9 +128,16 @@ def train_model(config):
         profile_emb_dim=profile_emb_dim
     )
 
+
     # Оптимизатор и функция потерь
     optimizer = torch.optim.AdamW(model.parameters(), lr=config['training']['learning_rate'])
-    criterion = nn.CrossEntropyLoss(ignore_index=0)  # Игнорируем паддинги
+    # Выбор функции потерь в зависимости от модели
+    if model_name in ['BERT4Rec', 'BERT4RecLLM']:
+        # Для BERT4Rec игнорируем токены с target -100
+        criterion = nn.CrossEntropyLoss(ignore_index=-100)
+    else:
+        # Для SASRec игнорируем паддинги (0)
+        criterion = nn.CrossEntropyLoss(ignore_index=0)
 
     if model_name in ['SASRecLLM', 'BERT4RecLLM']:
         if 'reconstruct_loss' in config['training']:
@@ -127,6 +168,7 @@ def train_model(config):
     # делаем тренировочный - датасет с профилями
     train_loader = profile_train_loader
 
+    evaluate_function = evaluate_model if model_name in ['Bert4Rec', 'Bert4RecLLM'] else evaluate_bert4rec_model
     # Цикл обучения
     for epoch in range(1, epochs + 1):
         start_time = time.time()
@@ -138,7 +180,12 @@ def train_model(config):
 
         print('Len of train loader:', len(train_loader))
         for batch in tqdm(train_loader):
-            input_seq, target_seq, user_ids = batch
+            if model_name in ['BERT4Rec', 'BERT4RecLLM']:
+                input_seq, target_seq, attention_mask, user_ids = batch
+                attention_mask = attention_mask.to(device)
+            else:
+                input_seq, target_seq, user_ids = batch
+                attention_mask = None
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
             user_ids = user_ids.to(device)
@@ -152,7 +199,31 @@ def train_model(config):
                     user_profile_emb = None
                     null_profile_binary_mask_batch = None
 
-                outputs, hidden_for_reconstruction = model(input_seq)
+                # outputs, hidden_for_reconstruction = model(input_seq)
+                # Прямой проход с учетом типа модели
+                if model_name == 'BERT4RecLLM':
+                    outputs, hidden_for_reconstruction = model(
+                        input_seq,
+                        attention_mask=attention_mask,
+                        user_profile_emb=user_profile_emb
+                    )
+                else:
+                    outputs, hidden_for_reconstruction = model(
+                        input_seq,
+                        user_profile_emb=user_profile_emb
+                    )
+
+                # # Форматирование выходных данных и целей
+                # if model_name == 'BERT4RecLLM':
+                #     # Для BERT4Rec обрабатываем все токены
+                #     logits = outputs.view(-1, outputs.size(-1))
+                #     targets = target_seq.view(-1)
+                # else:
+                #     # Для SASRec обрабатываем только следующий токен
+                #     logits = outputs.view(-1, outputs.size(-1))
+                #     targets = target_seq.view(-1)
+
+
                 # лосс модели
                 loss_model = calculate_recsys_loss(target_seq, outputs, criterion)
                 loss_guide = calculate_guide_loss(model=model,
@@ -220,7 +291,7 @@ def train_model(config):
 
         # Оценка на валидационном наборе
         if epoch % config['training']['eval_every'] == 0:
-            val_metrics = evaluate_model(model, valid_loader, device, mode='validation',
+            val_metrics = evaluate_function(model, valid_loader, device, mode='validation',
                                          model_criterion=criterion, criterion_reconstruct_fn=criterion_reconstruct_fn,
                                          user_profile_embeddings=user_profile_embeddings, null_profile_binary_mask=null_profile_binary_mask)
             print(f"Validation Metrics: {val_metrics}")
@@ -230,7 +301,7 @@ def train_model(config):
                 mlflow.log_metric(f'val_{sanitized_metric_name}', metric_value, step=epoch)
 
             start_time = time.time()
-            test_metrics = evaluate_model(model, test_loader, device, mode='test')
+            test_metrics = evaluate_function(model, test_loader, device, mode='test')
             print(f"Test Metrics: {test_metrics}")
             print('Test Time taken (s):', time.time() - start_time)
             # Логирование метрик с заменой недопустимых символов
@@ -244,7 +315,7 @@ def train_model(config):
             train_loader = finetune_train_loader
 
     # Оценка на тестовом наборе данных с использованием нового метода
-    test_metrics = evaluate_model(model, test_loader, device, mode='test')
+    test_metrics = evaluate_function(model, test_loader, device, mode='test')
     print(f"Test Metrics: {test_metrics}")
     # Логирование метрик с заменой недопустимых символов
     for metric_name, metric_value in test_metrics.items():
@@ -297,6 +368,7 @@ def get_model(model_name, config, device, profile_emb_dim=None):
             num_heads=config['model']['num_heads'],
             num_layers=config['model']['num_blocks'],  # Используем num_blocks как num_layers
             dropout_rate=config['model']['dropout_rate'],
+            mask_token=config['model']['mask_token']
         ).to(device)
     elif model_name == 'BERT4RecLLM':
         model = BERT4RecLLM(
