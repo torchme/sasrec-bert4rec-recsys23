@@ -7,7 +7,7 @@
 #SBATCH --mail-type=ALL
 #SBATCH --output=results/sasrec/run_train2/"result"%j.out
 #SBATCH --error=results/sasrec/run_train2/"error"%j.out
-#SBATCH --type_e"
+#SBATCH --"type_e"
 
 # Executable
 chmod +x experiments-2_0/help_distill_sasrec/run_train2.sh
