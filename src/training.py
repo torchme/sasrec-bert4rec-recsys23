@@ -168,7 +168,7 @@ def train_model(config):
     # делаем тренировочный - датасет с профилями
     train_loader = profile_train_loader
 
-    evaluate_function = evaluate_bert4rec_model if model_name in ['Bert4Rec', 'Bert4RecLLM'] else evaluate_model
+    evaluate_function = evaluate_bert4rec_model if model_name in ['BERT4Rec', 'BERT4RecLLM'] else evaluate_model
     # Цикл обучения
     for epoch in range(1, epochs + 1):
         start_time = time.time()
