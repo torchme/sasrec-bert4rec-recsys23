@@ -40,6 +40,8 @@ def train_model(config):
     with open(config['data']['counts'], 'rb') as f:
         counts = pickle.load(f)
 
+    test_sequences = get_test_seqs_with_first_elem(profile_train_sequences, test_sequences)
+
     user_id_mapping, item_id_mapping = mappings
     num_users, num_items = counts
     # Обновляем параметры модели
@@ -399,16 +401,29 @@ def process_config(config_file):
     train_model(config)
 
 
+def get_test_seqs_with_first_elem(train_sequences, test_sequences):
+    result = {}
+    for user_id, sequence in test_sequences.items():
+        if user_id not in train_sequences:
+            continue
+        result[user_id] = sequence[:len(train_sequences[user_id])+1]
+    return result
+
 if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Train recommendation model")
-    parser.add_argument('--config', type=str, required=True, help="Path to config file")
-    args = parser.parse_args()
-
-    process_config(args.config)
-
-    # with open(args.config, 'r', encoding='utf-8') as f:
-    #     config = yaml.safe_load(f)
+    # import argparse
     #
-    # train_model(config)
+    # parser = argparse.ArgumentParser(description="Train recommendation model")
+    # parser.add_argument('--config', type=str, required=True, help="Path to config file")
+    # args = parser.parse_args()
+
+    configs = [
+        'experiments-2_0/help_distill_sasrec/beauty_sasrec.yaml',
+        'experiments-2_0/help_distill_sasrec/kion_sasrec.yaml',
+        'experiments-2_0/help_distill_sasrec/ml20m_sasrec.yaml',
+        'experiments-2_0/help_distill_sasrec/m2_sasrec.yaml',
+    ]
+
+    for config_path in configs:
+        print('------------')
+        print('START NEW CONFIG:', config_path)
+        process_config(config_path)
