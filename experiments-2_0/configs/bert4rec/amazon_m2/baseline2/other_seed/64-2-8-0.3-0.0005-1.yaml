@@ -16,7 +16,7 @@ model:
 
 training:
   batch_size: 256
-  epochs: 30
+  epochs: 100
   learning_rate: 0.0005
   eval_every: 1
   model_dir: models/

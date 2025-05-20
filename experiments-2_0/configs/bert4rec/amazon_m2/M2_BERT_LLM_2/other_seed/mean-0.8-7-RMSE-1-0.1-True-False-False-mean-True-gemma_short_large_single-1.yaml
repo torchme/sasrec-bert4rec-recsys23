@@ -21,7 +21,7 @@ model:
 
 training:
   batch_size: 256
-  epochs: 20
+  epochs: 100
   learning_rate: 0.0005
   reconstruct_loss: RMSE
   eval_every: 1
