@@ -21,13 +21,13 @@ model:
 
 training:
   batch_size: 256
-  epochs: 50
+  epochs: 100
   learning_rate: 0.00075
   reconstruct_loss: MSE
   eval_every: 1
   model_dir: models/
   alpha: 0.6  # Параметр для комбинированной функции потерь
-  fine_tune_epoch: 10  # Эпоха, после которой начинаем тонкую настройку
+  fine_tune_epoch: 25  # Эпоха, после которой начинаем тонкую настройку
   scale_guide_loss: True   # или false
   save_checkpoints: false    # Если true, то будем сохранять чекпоинты после каждой эпохи
 
